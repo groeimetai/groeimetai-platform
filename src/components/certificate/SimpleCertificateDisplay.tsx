@@ -1,15 +1,58 @@
 'use client'
 
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Award, CheckCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Calendar, Award, CheckCircle, Download, Share2, ExternalLink } from 'lucide-react'
 
 interface SimpleCertificateDisplayProps {
   certificate: any
 }
 
 export default function SimpleCertificateDisplay({ certificate }: SimpleCertificateDisplayProps) {
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
+
+  const handleDownload = async () => {
+    setIsDownloading(true)
+    try {
+      const response = await fetch(`/api/certificate/download/${certificate.id}`)
+      if (!response.ok) throw new Error('Download failed')
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `certificate-${certificate.id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      
+      setTimeout(() => {
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      }, 100)
+    } catch (error) {
+      console.error('Download error:', error)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  const handleShare = async () => {
+    setIsSharing(true)
+    try {
+      const shareUrl = `${window.location.origin}/certificate/verify/${certificate.id}`
+      const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
+      window.open(linkedinUrl, '_blank')
+    } catch (error) {
+      console.error('Share error:', error)
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="text-center pb-2">
@@ -71,6 +114,44 @@ export default function SimpleCertificateDisplay({ certificate }: SimpleCertific
           <p className="font-medium">{certificate.instructorName}</p>
           <p className="text-sm text-muted-foreground">Course Instructor</p>
           <p className="text-sm text-muted-foreground mt-2">GroeimetAI Academy</p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap justify-center gap-4 pt-6">
+          <Button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            variant="default"
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            {isDownloading ? 'Downloading...' : 'Download PDF'}
+          </Button>
+          
+          <Button
+            onClick={handleShare}
+            disabled={isSharing}
+            variant="outline"
+            className="gap-2"
+          >
+            <Share2 className="h-4 w-4" />
+            {isSharing ? 'Sharing...' : 'Share on LinkedIn'}
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="gap-2"
+            asChild
+          >
+            <a
+              href={`/certificate/verify/${certificate.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="h-4 w-4" />
+              View Public Certificate
+            </a>
+          </Button>
         </div>
       </CardContent>
     </Card>
