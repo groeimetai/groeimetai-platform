@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar, Award, CheckCircle, Download, Share2, ExternalLink } from 'lucide-react'
+import { downloadCertificateAsHTML } from '@/utils/certificateDownload'
 
 interface SimpleCertificateDisplayProps {
   certificate: any
@@ -15,28 +16,15 @@ export default function SimpleCertificateDisplay({ certificate }: SimpleCertific
   const [isDownloading, setIsDownloading] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     setIsDownloading(true)
     try {
-      const response = await fetch(`/api/certificate/download/${certificate.id}`)
-      if (!response.ok) throw new Error('Download failed')
-      
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `certificate-${certificate.id}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      
-      setTimeout(() => {
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-      }, 100)
+      // Download as HTML file that can be printed or saved
+      downloadCertificateAsHTML(certificate)
     } catch (error) {
       console.error('Download error:', error)
     } finally {
-      setIsDownloading(false)
+      setTimeout(() => setIsDownloading(false), 1000)
     }
   }
 
@@ -125,7 +113,7 @@ export default function SimpleCertificateDisplay({ certificate }: SimpleCertific
             className="gap-2"
           >
             <Download className="h-4 w-4" />
-            {isDownloading ? 'Downloading...' : 'Download PDF'}
+            {isDownloading ? 'Downloading...' : 'Download Certificate'}
           </Button>
           
           <Button

@@ -1,7 +1,7 @@
 export const CERTIFICATE_CONFIG = {
   passingScore: 70,
   organizationName: 'GroeiMetAI Academy',
-  organizationLogo: '/images/logo.png',
+  organizationLogo: '/images/logo/GroeimetAi_logo_image_black.png',
   organizationWebsite: 'https://groeimetai.com',
   qrCodeSize: 200,
   linkedinShareUrl: 'https://www.linkedin.com/sharing/share-offsite/?url=',
