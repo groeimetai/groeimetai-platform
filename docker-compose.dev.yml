@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Development overrides for Next.js app
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    command: npm run dev
+    stdin_open: true
+    tty: true
+
+  # Redis remains the same but with different config
+  redis:
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # Nginx not needed in development
+  nginx:
+    profiles:
+      - production
+
+  # Indexing service in watch mode
+  indexing-service:
+    command: npm run dev:indexing
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - WATCH_MODE=true
