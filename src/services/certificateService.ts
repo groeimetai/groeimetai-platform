@@ -214,22 +214,23 @@ export class CertificateService {
       })
       
       // Record certificate on blockchain if enabled
-      let blockchainData: BlockchainCertificate | undefined
+      let blockchainData: BlockchainCertificate | undefined = undefined
       if (BLOCKCHAIN_CONFIG.enabled) {
         try {
           // Create temporary certificate object for blockchain recording
           const tempCertificate = {
-            id: 'temp-' + certificateNumber,
+            id: certificateNumber,
             studentName: params.studentName,
             courseName: params.courseName,
             completionDate: new Date(),
             certificateNumber,
-          } as any
+          }
           
           blockchainData = await this.simulateBlockchainRecord(tempCertificate)
         } catch (error) {
           console.error('Blockchain recording failed:', error)
-          // Continue without blockchain data
+          // Continue without blockchain data - set to undefined explicitly
+          blockchainData = undefined
         }
       }
       
@@ -685,12 +686,12 @@ export class CertificateService {
    * Simulate blockchain recording (mock implementation)
    * In production, this would interact with actual blockchain network
    */
-  static async simulateBlockchainRecord(certificate: Certificate): Promise<BlockchainCertificate> {
+  static async simulateBlockchainRecord(certificate: any): Promise<BlockchainCertificate> {
     const hash = this.generateBlockchainHash({
       studentName: certificate.studentName,
       courseName: certificate.courseName,
       completionDate: certificate.completionDate,
-      certificateNumber: (certificate as any).certificateNumber || certificate.id,
+      certificateNumber: certificate.certificateNumber || certificate.id,
     })
     
     // Simulate blockchain transaction
@@ -709,11 +710,7 @@ export class CertificateService {
       status: 'confirmed',
     }
     
-    // Update certificate with blockchain data
-    await updateDoc(doc(db, 'certificates', certificate.id), {
-      blockchain: blockchainData,
-    })
-    
+    // Don't update here - let the caller handle updates
     return blockchainData
   }
 
