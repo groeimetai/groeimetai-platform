@@ -135,29 +135,32 @@ const styles = StyleSheet.create({
   },
   signatures: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '80%',
+    justifyContent: 'center',
+    width: '90%',
     marginBottom: 15,
     alignSelf: 'center',
   },
   signatureBlock: {
     alignItems: 'center',
-    flex: 1,
+    width: 150,
+  },
+  signatureSpacer: {
+    width: 80,
   },
   signatureLine: {
-    width: 120,
+    width: 100,
     height: 1,
     backgroundColor: '#9ca3af',
     marginBottom: 4,
   },
   signatureName: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#1f2937',
     marginBottom: 2,
   },
   signatureTitle: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#6b7280',
   },
   certDetails: {
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
   },
   certInfo: {
     flex: 1,
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
   },
   certNumber: {
     fontSize: 9,
@@ -306,6 +309,9 @@ const CertificatePDF: React.FC<{ data: CertificateData }> = ({ data }) => (
               <Text style={styles.signatureName}>{data.instructorName}</Text>
               <Text style={styles.signatureTitle}>Course Instructor</Text>
             </View>
+            
+            <View style={styles.signatureSpacer} />
+            
             <View style={styles.signatureBlock}>
               <View style={styles.signatureLine} />
               <Text style={styles.signatureName}>Director</Text>
@@ -316,19 +322,19 @@ const CertificatePDF: React.FC<{ data: CertificateData }> = ({ data }) => (
           {/* Certificate details and QR code */}
           <View style={styles.certDetails}>
             <View style={styles.certDetailsRow}>
-              <View style={styles.certInfo}>
-                <Text style={styles.certNumber}>Certificate No: {data.certificateNumber}</Text>
-                <Text style={styles.organization}>
-                  {data.organizationWebsite || 'groeimetai.com'}
-                </Text>
-              </View>
-              
               {data.qrCode && (
                 <View style={styles.qrSection}>
                   <Image style={styles.qrCode} src={data.qrCode} />
                   <Text style={styles.qrText}>Scan to verify</Text>
                 </View>
               )}
+              
+              <View style={styles.certInfo}>
+                <Text style={styles.certNumber}>Certificate No: {data.certificateNumber}</Text>
+                <Text style={styles.organization}>
+                  {data.organizationWebsite || 'groeimetai.com'}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
