@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 // Define styles
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 30,
     backgroundColor: '#ffffff',
     position: 'relative',
   },
@@ -28,183 +28,183 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
+    justifyContent: 'flex-start',
+    padding: 15,
+    maxWidth: 700,
+    alignSelf: 'center',
   },
   header: {
-    marginBottom: 30,
+    marginBottom: 20,
     alignItems: 'center',
   },
-  logo: {
-    width: 120,
-    height: 40,
-    marginBottom: 20,
-  },
   title: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#2563eb',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6b7280',
     textAlign: 'center',
   },
   content: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   certifyText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#374151',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center',
   },
   studentName: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center',
   },
   courseInfo: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   courseText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#374151',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   courseName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2563eb',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center',
   },
   gradeSection: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 20,
-    marginBottom: 20,
+    gap: 15,
+    marginBottom: 15,
   },
   gradeBadge: {
-    padding: '8 16',
+    padding: '6 12',
     backgroundColor: '#e5e7eb',
-    borderRadius: 8,
+    borderRadius: 6,
   },
   gradeText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#374151',
   },
   achievementsSection: {
-    marginBottom: 20,
+    marginBottom: 15,
     alignItems: 'center',
   },
   achievementsTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#6b7280',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   achievementsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
+    gap: 4,
+    maxWidth: 500,
   },
   achievementBadge: {
-    padding: '4 12',
+    padding: '3 8',
     backgroundColor: '#f3f4f6',
     borderRadius: 4,
-    fontSize: 12,
+    fontSize: 10,
     color: '#4b5563',
   },
   completionDate: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6b7280',
-    marginBottom: 30,
+    marginBottom: 20,
     textAlign: 'center',
   },
   footer: {
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: 10,
   },
   signatures: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 30,
+    justifyContent: 'space-around',
+    width: '80%',
+    marginBottom: 15,
+    alignSelf: 'center',
   },
   signatureBlock: {
     alignItems: 'center',
     flex: 1,
   },
   signatureLine: {
-    width: 150,
+    width: 120,
     height: 1,
     backgroundColor: '#9ca3af',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   signatureName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#1f2937',
     marginBottom: 2,
   },
   signatureTitle: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#6b7280',
   },
   certDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'center',
     width: '100%',
-    marginTop: 20,
+    marginTop: 15,
+    gap: 5,
   },
   certNumber: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#9ca3af',
   },
   qrSection: {
     alignItems: 'center',
   },
   qrCode: {
-    width: 80,
-    height: 80,
-    marginBottom: 5,
+    width: 60,
+    height: 60,
+    marginBottom: 4,
   },
   qrText: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#9ca3af',
     textAlign: 'center',
   },
   organization: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#6b7280',
     textAlign: 'center',
   },
   border: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
-    bottom: 20,
-    borderWidth: 3,
+    top: 15,
+    left: 15,
+    right: 15,
+    bottom: 15,
+    borderWidth: 2,
     borderColor: '#2563eb',
     borderStyle: 'solid',
   },
   decorativeBorder: {
     position: 'absolute',
-    top: 25,
-    left: 25,
-    right: 25,
-    bottom: 25,
+    top: 20,
+    left: 20,
+    right: 20,
+    bottom: 20,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderStyle: 'solid',
@@ -230,7 +230,7 @@ interface CertificateData {
 // Certificate component
 const CertificatePDF: React.FC<{ data: CertificateData }> = ({ data }) => (
   <Document>
-    <Page size="A4" orientation="landscape" style={styles.page}>
+    <Page size="A4" orientation="landscape" style={styles.page} wrap={false}>
       {/* Decorative borders */}
       <View style={styles.border} />
       <View style={styles.decorativeBorder} />
@@ -238,9 +238,6 @@ const CertificatePDF: React.FC<{ data: CertificateData }> = ({ data }) => (
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          {data.organizationLogo && (
-            <Image style={styles.logo} src={data.organizationLogo} />
-          )}
           <Text style={styles.title}>Certificate of Completion</Text>
           <Text style={styles.subtitle}>{data.organizationName || 'GroeimetAI Academy'}</Text>
         </View>
@@ -309,17 +306,9 @@ const CertificatePDF: React.FC<{ data: CertificateData }> = ({ data }) => (
             </View>
           </View>
 
-          {/* Certificate details and QR code */}
+          {/* Certificate details */}
           <View style={styles.certDetails}>
             <Text style={styles.certNumber}>Certificate No: {data.certificateNumber}</Text>
-            
-            {data.qrCode && (
-              <View style={styles.qrSection}>
-                <Image style={styles.qrCode} src={data.qrCode} />
-                <Text style={styles.qrText}>Scan to verify</Text>
-              </View>
-            )}
-            
             <Text style={styles.organization}>
               {data.organizationWebsite || 'groeimetai.com'}
             </Text>
