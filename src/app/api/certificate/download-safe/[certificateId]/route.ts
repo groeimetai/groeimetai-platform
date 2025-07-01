@@ -39,7 +39,7 @@ Completed on: ${new Date(certificate.completionDate).toLocaleDateString()}
 Certificate ID: ${certificateId}
 Instructor: ${certificate.instructorName}
 
-GroeiMetAI Academy
+GroeimetAI Academy
 `.trim()
     
     // Return as text file for now

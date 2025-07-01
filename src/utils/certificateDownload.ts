@@ -140,7 +140,7 @@ export function downloadCertificateAsHTML(certificate: any) {
             <p class="text-muted">Issued by</p>
             <p class="instructor">${certificate.instructorName}</p>
             <p class="text-muted">Course Instructor</p>
-            <p class="organization">GroeiMetAI Academy</p>
+            <p class="organization">GroeimetAI Academy</p>
         </div>
     </div>
 </body>
