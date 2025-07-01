@@ -21,6 +21,8 @@ import { Certificate, User, Course, AssessmentAttempt, Enrollment } from '@/type
 import { BlockchainCertificate, CertificateVerification } from '@/types/certificate'
 import { AssessmentService } from './assessmentService'
 import { EnrollmentService } from './enrollmentService'
+import { getBlockchainService } from './blockchainService'
+import { certificateQueue } from '@/lib/blockchain/certificate-queue'
 
 // Certificate configuration
 const CERTIFICATE_CONFIG = {
@@ -35,10 +37,12 @@ const CERTIFICATE_CONFIG = {
 
 // Blockchain configuration
 const BLOCKCHAIN_CONFIG = {
-  enabled: true, // Enable blockchain verification
-  network: 'polygon' as const,
-  explorerBaseUrl: 'https://polygonscan.com',
-  mockMode: true, // Use mock blockchain for development
+  enabled: process.env.NEXT_PUBLIC_BLOCKCHAIN_ENABLED === 'true',
+  network: (process.env.NEXT_PUBLIC_DEFAULT_NETWORK || 'mumbai') as const,
+  explorerBaseUrl: process.env.NEXT_PUBLIC_DEFAULT_NETWORK === 'polygon' 
+    ? 'https://polygonscan.com' 
+    : 'https://mumbai.polygonscan.com',
+  mockMode: process.env.NEXT_PUBLIC_BLOCKCHAIN_ENABLED !== 'true', // Use mock if blockchain not enabled
 }
 
 // Extended Certificate interface for internal use
@@ -272,9 +276,114 @@ export class CertificateService {
       
       // Record certificate on blockchain if enabled
       let blockchainData: BlockchainCertificate | undefined = undefined
-      if (BLOCKCHAIN_CONFIG.enabled) {
+      let queueId: string | undefined = undefined
+      
+      if (BLOCKCHAIN_CONFIG.enabled && !BLOCKCHAIN_CONFIG.mockMode) {
         try {
-          // Create temporary certificate object for blockchain recording
+          const blockchainService = getBlockchainService()
+          
+          // Check if wallet is connected and has minting permissions
+          const walletState = blockchainService.getWalletState()
+          if (walletState.isConnected && walletState.address) {
+            const canMint = await blockchainService.canMintCertificates(walletState.address)
+            
+            if (canMint) {
+              // Try immediate minting first
+              try {
+                const mintResult = await blockchainService.mintCertificate({
+                  studentAddress: walletState.address, // For now, mint to the minter's address
+                  studentName: params.studentName,
+                  courseId: params.courseId,
+                  courseName: params.courseName,
+                  instructorName: params.instructorName,
+                  completionDate: new Date(),
+                  certificateNumber,
+                  certificateId,
+                  grade: params.grade,
+                  score: params.score,
+                  achievements: params.achievements,
+                })
+                
+                if (mintResult.success && mintResult.blockchainCertificate) {
+                  blockchainData = mintResult.blockchainCertificate
+                } else {
+                  throw new Error(mintResult.error || 'Minting failed')
+                }
+              } catch (mintError) {
+                console.warn('Immediate minting failed, adding to queue:', mintError)
+                
+                // Add to queue for retry
+                queueId = await certificateQueue.addToQueue({
+                  certificateId,
+                  userId: params.userId,
+                  courseId: params.courseId,
+                  mintData: {
+                    studentAddress: walletState.address,
+                    studentName: params.studentName,
+                    courseName: params.courseName,
+                    instructorName: params.instructorName,
+                    completionDate: new Date(),
+                    certificateNumber,
+                    grade: params.grade,
+                    score: params.score,
+                    achievements: params.achievements,
+                  },
+                  priority: params.score >= 95 ? 10 : 0, // Higher priority for high scores
+                })
+              }
+            } else {
+              console.warn('Wallet does not have minting permissions, adding to queue for later')
+              
+              // Add to queue for when permissions are granted
+              queueId = await certificateQueue.addToQueue({
+                certificateId,
+                userId: params.userId,
+                courseId: params.courseId,
+                mintData: {
+                  studentAddress: walletState.address,
+                  studentName: params.studentName,
+                  courseName: params.courseName,
+                  instructorName: params.instructorName,
+                  completionDate: new Date(),
+                  certificateNumber,
+                  grade: params.grade,
+                  score: params.score,
+                  achievements: params.achievements,
+                },
+                priority: 0,
+              })
+            }
+          } else {
+            console.warn('Wallet not connected, certificate will be queued for blockchain minting')
+            
+            // Queue for later when wallet is connected
+            // For now, store with placeholder address
+            queueId = await certificateQueue.addToQueue({
+              certificateId,
+              userId: params.userId,
+              courseId: params.courseId,
+              mintData: {
+                studentAddress: '0x0000000000000000000000000000000000000000', // Placeholder
+                studentName: params.studentName,
+                courseName: params.courseName,
+                instructorName: params.instructorName,
+                completionDate: new Date(),
+                certificateNumber,
+                grade: params.grade,
+                score: params.score,
+                achievements: params.achievements,
+              },
+              priority: -10, // Lower priority for unconnected wallet
+            })
+          }
+        } catch (error) {
+          console.error('Blockchain recording failed:', error)
+          // Continue without blockchain data - certificate is still valid
+          blockchainData = undefined
+        }
+      } else if (BLOCKCHAIN_CONFIG.mockMode) {
+        // Use mock blockchain for development
+        try {
           const tempCertificate = {
             id: certificateNumber,
             studentName: params.studentName,
@@ -285,14 +394,13 @@ export class CertificateService {
           
           blockchainData = await this.simulateBlockchainRecord(tempCertificate)
         } catch (error) {
-          console.error('Blockchain recording failed:', error)
-          // Continue without blockchain data - set to undefined explicitly
+          console.error('Mock blockchain recording failed:', error)
           blockchainData = undefined
         }
       }
       
       // Create certificate document with extended data
-      const certificateData: Omit<CertificateData, 'id'> & { blockchain?: BlockchainCertificate } = {
+      const certificateData: Omit<CertificateData, 'id'> & { blockchain?: BlockchainCertificate; blockchainQueueId?: string } = {
         userId: params.userId,
         courseId: params.courseId,
         title: `Certificate of Completion - ${params.courseName}`,
@@ -313,6 +421,7 @@ export class CertificateService {
         achievements: params.achievements,
         linkedinShareUrl: '',
         blockchain: blockchainData,
+        blockchainQueueId: queueId,
       }
 
       // Save certificate to Firestore
@@ -797,7 +906,40 @@ export class CertificateService {
         }
       }
       
-      // Generate current hash
+      // Check if blockchain is enabled and not in mock mode
+      if (BLOCKCHAIN_CONFIG.enabled && !BLOCKCHAIN_CONFIG.mockMode) {
+        try {
+          const blockchainService = getBlockchainService()
+          const verifyResult = await blockchainService.verifyCertificate(certificateId)
+          
+          if (verifyResult.isValid && verifyResult.verification) {
+            return verifyResult.verification
+          } else {
+            return {
+              certificateId,
+              isValid: false,
+              verifiedAt: new Date(),
+              blockchainStatus: 'invalid',
+              details: {
+                originalHash: '',
+                currentHash: '',
+                matchesBlockchain: false,
+                certificateData: {
+                  studentName: certificate.studentName,
+                  courseName: certificate.courseName,
+                  completionDate: certificate.completionDate,
+                  issuer: CERTIFICATE_CONFIG.organizationName,
+                },
+              },
+            }
+          }
+        } catch (error) {
+          console.error('Blockchain verification failed:', error)
+          // Fall back to mock verification
+        }
+      }
+      
+      // Mock verification for development or when blockchain is disabled
       const currentHash = this.generateBlockchainHash({
         studentName: certificate.studentName,
         courseName: certificate.courseName,
@@ -866,10 +1008,228 @@ export class CertificateService {
       const certificate = await this.getCertificateById(certificateId)
       if (!certificate) return null
       
-      return await this.simulateBlockchainRecord(certificate)
+      // Check if already has blockchain data
+      const certificateData = certificate as any
+      if (certificateData.blockchain) {
+        return certificateData.blockchain
+      }
+      
+      // Check if already queued
+      if (certificateData.blockchainQueueId) {
+        const queueItem = await certificateQueue.getQueueItem(certificateData.blockchainQueueId)
+        if (queueItem && queueItem.status === 'pending') {
+          console.log('Certificate already queued for blockchain minting')
+          return null
+        }
+      }
+      
+      // Check if blockchain is enabled and not in mock mode
+      if (BLOCKCHAIN_CONFIG.enabled && !BLOCKCHAIN_CONFIG.mockMode) {
+        const blockchainService = getBlockchainService()
+        const walletState = blockchainService.getWalletState()
+        
+        if (!walletState.isConnected || !walletState.address) {
+          // Add to queue for later
+          const queueId = await certificateQueue.addToQueue({
+            certificateId,
+            userId: certificate.userId,
+            courseId: certificateData.courseId || '',
+            mintData: {
+              studentAddress: '0x0000000000000000000000000000000000000000', // Placeholder
+              studentName: certificate.studentName,
+              courseName: certificate.courseName,
+              instructorName: certificate.instructorName,
+              completionDate: certificate.completionDate,
+              certificateNumber: certificateData.certificateNumber || certificate.id,
+              grade: certificateData.grade || 'N/A',
+              score: certificateData.score || 0,
+              achievements: certificateData.achievements || [],
+            },
+            priority: -5, // Medium-low priority for manual enablement
+          })
+          
+          // Update certificate with queue ID
+          await updateDoc(doc(db, 'certificates', certificateId), {
+            blockchainQueueId: queueId,
+            updatedAt: serverTimestamp(),
+          })
+          
+          throw new Error('Wallet not connected - certificate added to queue')
+        }
+        
+        const canMint = await blockchainService.canMintCertificates(walletState.address)
+        if (!canMint) {
+          throw new Error('Wallet does not have minting permissions')
+        }
+        
+        // Try to mint immediately
+        try {
+          const mintResult = await blockchainService.mintCertificate({
+            studentAddress: walletState.address, // For now, mint to the minter's address
+            studentName: certificate.studentName,
+            courseId: certificateData.courseId || '',
+            courseName: certificate.courseName,
+            instructorName: certificate.instructorName,
+            completionDate: certificate.completionDate,
+            certificateNumber: certificateData.certificateNumber || certificate.id,
+            certificateId: certificate.id,
+            grade: certificateData.grade,
+            score: certificateData.score,
+            achievements: certificateData.achievements || [],
+          })
+          
+          if (mintResult.success && mintResult.blockchainCertificate) {
+            // Update certificate in database with blockchain data
+            await updateDoc(doc(db, 'certificates', certificateId), {
+              blockchain: mintResult.blockchainCertificate,
+              updatedAt: serverTimestamp(),
+            })
+            
+            return mintResult.blockchainCertificate
+          }
+          
+          throw new Error(mintResult.error || 'Minting failed')
+        } catch (mintError) {
+          // Add to queue for retry
+          const queueId = await certificateQueue.addToQueue({
+            certificateId,
+            userId: certificate.userId,
+            courseId: certificateData.courseId || '',
+            mintData: {
+              studentAddress: walletState.address,
+              studentName: certificate.studentName,
+              courseName: certificate.courseName,
+              instructorName: certificate.instructorName,
+              completionDate: certificate.completionDate,
+              certificateNumber: certificateData.certificateNumber || certificate.id,
+              grade: certificateData.grade || 'N/A',
+              score: certificateData.score || 0,
+              achievements: certificateData.achievements || [],
+            },
+            priority: 5, // Higher priority for manual enablement
+          })
+          
+          // Update certificate with queue ID
+          await updateDoc(doc(db, 'certificates', certificateId), {
+            blockchainQueueId: queueId,
+            updatedAt: serverTimestamp(),
+          })
+          
+          throw mintError
+        }
+      } else {
+        // Use mock blockchain for development
+        return await this.simulateBlockchainRecord(certificate)
+      }
     } catch (error) {
       console.error('Enable blockchain verification error:', error)
       throw error
     }
+  }
+  
+  /**
+   * Get blockchain status for certificate
+   */
+  static async getBlockchainStatus(certificateId: string): Promise<{
+    hasBlockchain: boolean
+    status: 'verified' | 'pending' | 'failed' | 'none'
+    queuePosition?: number
+    blockchain?: BlockchainCertificate
+    error?: string
+  }> {
+    try {
+      const certificate = await this.getCertificateById(certificateId)
+      if (!certificate) {
+        return { hasBlockchain: false, status: 'none' }
+      }
+      
+      const certificateData = certificate as any
+      
+      // Check if already has blockchain data
+      if (certificateData.blockchain) {
+        return {
+          hasBlockchain: true,
+          status: 'verified',
+          blockchain: certificateData.blockchain,
+        }
+      }
+      
+      // Check queue status
+      if (certificateData.blockchainQueueId) {
+        const queueItem = await certificateQueue.getQueueItem(certificateData.blockchainQueueId)
+        if (queueItem) {
+          if (queueItem.status === 'completed' && queueItem.blockchainData) {
+            // Update certificate with blockchain data if not already done
+            await updateDoc(doc(db, 'certificates', certificateId), {
+              blockchain: queueItem.blockchainData,
+              updatedAt: serverTimestamp(),
+            })
+            
+            return {
+              hasBlockchain: true,
+              status: 'verified',
+              blockchain: queueItem.blockchainData,
+            }
+          }
+          
+          if (queueItem.status === 'failed') {
+            return {
+              hasBlockchain: false,
+              status: 'failed',
+              error: queueItem.error,
+            }
+          }
+          
+          // Get queue position if pending
+          if (queueItem.status === 'pending') {
+            // This is a simplified position calculation
+            // In production, you'd want a more accurate position tracking
+            const stats = await certificateQueue.getQueueStats()
+            return {
+              hasBlockchain: false,
+              status: 'pending',
+              queuePosition: stats.pending,
+            }
+          }
+        }
+      }
+      
+      return { hasBlockchain: false, status: 'none' }
+    } catch (error) {
+      console.error('Get blockchain status error:', error)
+      return { hasBlockchain: false, status: 'none', error: String(error) }
+    }
+  }
+  
+  /**
+   * Retry blockchain minting for failed certificates
+   */
+  static async retryBlockchainMinting(certificateId: string): Promise<void> {
+    try {
+      const certificate = await this.getCertificateById(certificateId)
+      if (!certificate) {
+        throw new Error('Certificate not found')
+      }
+      
+      const certificateData = certificate as any
+      
+      // Check if has queue ID
+      if (certificateData.blockchainQueueId) {
+        await certificateQueue.retryFailed([certificateData.blockchainQueueId])
+      } else {
+        // Enable blockchain verification which will create a new queue entry
+        await this.enableBlockchainVerification(certificateId)
+      }
+    } catch (error) {
+      console.error('Retry blockchain minting error:', error)
+      throw error
+    }
+  }
+  
+  /**
+   * Get blockchain queue statistics
+   */
+  static async getBlockchainQueueStats() {
+    return certificateQueue.getQueueStats()
   }
 }

@@ -15,7 +15,22 @@
     "clean:install": "npm run clean && npm install",
     "init-indexing": "tsx scripts/init-indexing.ts",
     "index-courses": "node src/scripts/index-all-courses.js",
-    "index-pinecone": "node src/scripts/index-to-pinecone.js"
+    "index-pinecone": "node src/scripts/index-to-pinecone.js",
+    "hardhat": "hardhat",
+    "compile": "hardhat compile",
+    "test:contracts": "hardhat test",
+    "deploy:mumbai": "hardhat run scripts/deploy-certificate-registry.js --network mumbai",
+    "deploy:polygon": "hardhat run scripts/deploy-certificate-registry.js --network polygon",
+    "deploy:local": "hardhat run scripts/deploy-certificate-registry.js --network hardhat",
+    "deploy:blockchain": "./scripts/deploy-blockchain.sh",
+    "setup:roles": "hardhat run scripts/setup-roles.js",
+    "health:check": "./scripts/health-check.sh",
+    "migrate:certificates": "tsx src/scripts/migrate-certificates.ts",
+    "export:certificates": "tsx src/scripts/export-certificates.ts",
+    "verify:migration": "tsx src/scripts/verify-migration.ts",
+    "blockchain:local": "docker-compose -f docker-compose.blockchain.yml up -d",
+    "blockchain:stop": "docker-compose -f docker-compose.blockchain.yml down",
+    "blockchain:logs": "docker-compose -f docker-compose.blockchain.yml logs -f"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.2",
@@ -96,14 +111,21 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.3",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
+    "@openzeppelin/contracts": "^5.0.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/jest": "^29.5.0",
     "@types/three": "^0.177.0",
+    "chai": "^4.3.10",
     "eslint": "^8.0.0",
     "eslint-config-next": "14.0.0",
+    "hardhat": "^2.19.0",
+    "hardhat-gas-reporter": "^1.0.9",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "solidity-coverage": "^0.8.5",
     "tsx": "^4.7.0"
   }
 }

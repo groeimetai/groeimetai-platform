@@ -16,6 +16,12 @@ const BlockchainVerification = dynamic(
   { ssr: false }
 )
 
+// Dynamic import for MintCertificateButton to avoid SSR issues
+const MintCertificateButton = dynamic(
+  () => import('./MintCertificateButton'),
+  { ssr: false }
+)
+
 interface CertificateDisplayProps {
   certificate: Certificate & {
     certificateNumber?: string
@@ -189,6 +195,41 @@ export default function CertificateDisplay({
           </div>
         )}
 
+        {/* Blockchain Info */}
+        {certificate.blockchain?.status === 'confirmed' && (
+          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-blue-600" />
+                <span className="font-medium text-blue-900 dark:text-blue-100">
+                  Blockchain Verified
+                </span>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                Block #{certificate.blockchain.blockNumber}
+              </Badge>
+            </div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>Transaction Hash:</span>
+                <a
+                  href={certificate.blockchain.explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-blue-600 hover:underline"
+                >
+                  {certificate.blockchain.transactionId.slice(0, 8)}...{certificate.blockchain.transactionId.slice(-6)}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Network:</span>
+                <span className="font-mono">{certificate.blockchain.networkId}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* QR Code */}
         {certificate.qrCode && (
           <div className="flex flex-col items-center space-y-2 pt-4">
@@ -252,6 +293,22 @@ export default function CertificateDisplay({
                 <Share2 className="h-4 w-4" />
                 {isSharing ? 'Sharing...' : 'Share on LinkedIn'}
               </Button>
+            )}
+            
+            {/* Mint to Blockchain Button */}
+            {!certificate.blockchain?.status && (
+              <MintCertificateButton
+                certificate={certificate}
+                variant="outline"
+                onMintSuccess={(txHash, ipfsHash) => {
+                  toast({
+                    title: "Certificate Minted",
+                    description: "Your certificate is now permanently stored on the blockchain.",
+                  })
+                  // Optionally refresh the page or update the certificate state
+                  window.location.reload()
+                }}
+              />
             )}
             
             <Button
