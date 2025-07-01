@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   completionDate: {
     fontSize: 14,
     color: '#6b7280',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center',
   },
   footer: {
@@ -161,11 +161,18 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   certDetails: {
-    flexDirection: 'column',
-    alignItems: 'center',
     width: '100%',
     marginTop: 15,
-    gap: 5,
+  },
+  certDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  certInfo: {
+    flex: 1,
+    alignItems: 'flex-start',
   },
   certNumber: {
     fontSize: 9,
@@ -175,19 +182,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   qrCode: {
-    width: 60,
-    height: 60,
-    marginBottom: 4,
+    width: 50,
+    height: 50,
+    marginBottom: 2,
   },
   qrText: {
-    fontSize: 7,
+    fontSize: 6,
     color: '#9ca3af',
     textAlign: 'center',
   },
   organization: {
     fontSize: 10,
     color: '#6b7280',
-    textAlign: 'center',
+    marginTop: 2,
   },
   border: {
     position: 'absolute',
@@ -306,12 +313,23 @@ const CertificatePDF: React.FC<{ data: CertificateData }> = ({ data }) => (
             </View>
           </View>
 
-          {/* Certificate details */}
+          {/* Certificate details and QR code */}
           <View style={styles.certDetails}>
-            <Text style={styles.certNumber}>Certificate No: {data.certificateNumber}</Text>
-            <Text style={styles.organization}>
-              {data.organizationWebsite || 'groeimetai.com'}
-            </Text>
+            <View style={styles.certDetailsRow}>
+              <View style={styles.certInfo}>
+                <Text style={styles.certNumber}>Certificate No: {data.certificateNumber}</Text>
+                <Text style={styles.organization}>
+                  {data.organizationWebsite || 'groeimetai.com'}
+                </Text>
+              </View>
+              
+              {data.qrCode && (
+                <View style={styles.qrSection}>
+                  <Image style={styles.qrCode} src={data.qrCode} />
+                  <Text style={styles.qrText}>Scan to verify</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
       </View>
