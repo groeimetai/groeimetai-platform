@@ -84,6 +84,63 @@ export class CertificateService {
   }
 
   /**
+   * Generate certificate for course completion (without assessment)
+   */
+  static async generateCertificateForCourseCompletion(
+    userId: string,
+    courseId: string
+  ): Promise<string | null> {
+    try {
+      // Check if certificate already exists
+      const existingCertificate = await this.getUserCourseCertificate(userId, courseId)
+      if (existingCertificate) {
+        return existingCertificate.id
+      }
+
+      // Get enrollment data
+      const enrollmentData = await EnrollmentService.getUserEnrollment(userId, courseId)
+      if (!enrollmentData || !enrollmentData.completedAt) {
+        return null // Course not completed
+      }
+
+      // Get user and course data
+      const [userDoc, courseDoc] = await Promise.all([
+        getDoc(doc(db, 'users', userId)),
+        getDoc(doc(db, 'courses', courseId))
+      ])
+
+      const userData = userDoc.data() as User
+      const courseData = courseDoc.data() as Course
+
+      if (!userData || !courseData) {
+        throw new Error('Required data not found')
+      }
+
+      // Calculate completion time in hours
+      const completionTime = Math.floor(
+        (enrollmentData.completedAt.getTime() - enrollmentData.enrolledAt.getTime()) / (1000 * 60 * 60)
+      )
+
+      // Generate certificate with completion-based values
+      return await this.generateCertificate({
+        userId,
+        courseId,
+        studentName: userData.displayName,
+        courseName: courseData.title,
+        instructorName: courseData.instructor.displayName,
+        instructorTitle: 'Course Instructor',
+        score: 100, // Full completion
+        grade: 'Completed',
+        completionTime,
+        achievements: ['Course Completed', 'All Lessons Finished'],
+      })
+    } catch (error) {
+      console.error('Generate certificate for course completion error:', error)
+      throw error
+    }
+  }
+
+  /**
    * Check if user has passed assessment and generate certificate if eligible
    */
   static async checkAndGenerateCertificate(

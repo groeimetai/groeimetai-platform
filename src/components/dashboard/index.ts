@@ -1,0 +1,8 @@
+export { EnrolledCoursesWidget } from './EnrolledCoursesWidget'
+export { ProgressOverviewWidget } from './ProgressOverviewWidget'
+export { ActivityTimeline } from './ActivityTimeline'
+export { UpcomingLessons } from './UpcomingLessons'
+export { AchievementsWidget } from './AchievementsWidget'
+export { LearningStreakWidget } from './LearningStreakWidget'
+export { QuickActions } from './QuickActions'
+export { CertificateGenerator } from './CertificateGenerator'

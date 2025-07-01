@@ -108,14 +108,31 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
     if (isComplete && !hasCheckedCompletion && user) {
       setHasCheckedCompletion(true);
       
+      // Update enrollment status first
+      await EnrollmentService.completeEnrollment(user.uid, course.id);
+      
       // Check if certificate already exists
       const existingCertificate = await CertificateService.getUserCourseCertificate(user.uid, course.id);
       if (existingCertificate) {
         setCertificate(existingCertificate);
+      } else {
+        // Automatically generate certificate for course completion
+        try {
+          const certificateId = await CertificateService.generateCertificateForCourseCompletion(
+            user.uid,
+            course.id
+          );
+          
+          if (certificateId) {
+            const newCertificate = await CertificateService.getCertificateById(certificateId);
+            if (newCertificate) {
+              setCertificate(newCertificate);
+            }
+          }
+        } catch (error) {
+          console.error('Error auto-generating certificate:', error);
+        }
       }
-      
-      // Update enrollment status
-      await EnrollmentService.completeEnrollment(user.uid, course.id);
       
       // Show completion modal
       setShowCompletionModal(true);
@@ -211,11 +228,14 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
         .map(p => p.lessonId);
       
       if (completedFromDb.length > 0) {
-        setCompletedLessons(prev => [...new Set([...prev, ...completedFromDb])]);
+        const updatedCompletedLessons = [...new Set([...completedLessons, ...completedFromDb])];
+        setCompletedLessons(updatedCompletedLessons);
+        // Check if course is already completed
+        await checkCourseCompletion(updatedCompletedLessons);
       }
     };
     loadProgress();
-  }, [user, course.id, getCourseProgress, setCompletedLessons]);
+  }, [user, course.id, getCourseProgress]);
 
   if (courseModules.length === 0) {
     return (
