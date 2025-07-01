@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, XCircle, Shield } from 'lucide-react'
 import { adminDb } from '@/lib/firebase/admin'
+import ClientCertificateVerify from './ClientCertificateVerify'
 
 interface PageProps {
   params: { certificateId: string }
@@ -83,6 +84,14 @@ async function verifyCertificate(certificateId: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  // If Firebase Admin is not initialized, return default metadata
+  if (!adminDb) {
+    return {
+      title: 'Certificate Verification | GroeimetAI',
+      description: 'Verify certificate authenticity',
+    }
+  }
+  
   const result = await verifyCertificate(params.certificateId)
   
   if (result.success && result.certificate) {
@@ -104,6 +113,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function CertificateVerificationPage({ params }: PageProps) {
+  // If Firebase Admin is not initialized, use client-side verification
+  if (!adminDb) {
+    console.log('Using client-side certificate verification')
+    return <ClientCertificateVerify certificateId={params.certificateId} />
+  }
+  
   const result = await verifyCertificate(params.certificateId)
   
   if (!result.success) {
