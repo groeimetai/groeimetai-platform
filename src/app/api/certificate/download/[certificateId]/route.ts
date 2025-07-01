@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { CertificateService } from '@/services/certificateService'
-import { generateCertificatePDF } from '@/services/certificatePDFGenerator'
 import { CERTIFICATE_CONFIG } from '@/lib/config/certificates'
 
 export async function GET(
@@ -45,8 +44,9 @@ export async function GET(
       organizationWebsite: CERTIFICATE_CONFIG.organizationWebsite,
     }
     
-    // Generate PDF
-    const pdfBlob = await generateCertificatePDF(certificateData)
+    // Generate PDF using safe wrapper
+    const { generateCertificatePDFSafe } = await import('@/services/certificatePDFGeneratorWrapper')
+    const pdfBlob = await generateCertificatePDFSafe(certificateData)
     
     // Convert blob to buffer
     const buffer = Buffer.from(await pdfBlob.arrayBuffer())

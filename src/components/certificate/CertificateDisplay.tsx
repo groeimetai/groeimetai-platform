@@ -8,7 +8,13 @@ import { Badge } from '@/components/ui/badge'
 import { Download, Share2, CheckCircle, Calendar, Award, ExternalLink, Shield } from 'lucide-react'
 import { format } from 'date-fns'
 import Image from 'next/image'
-import BlockchainVerification from './BlockchainVerification'
+import dynamic from 'next/dynamic'
+
+// Dynamic import for BlockchainVerification to avoid SSR issues
+const BlockchainVerification = dynamic(
+  () => import('./BlockchainVerification'),
+  { ssr: false }
+)
 
 interface CertificateDisplayProps {
   certificate: Certificate & {

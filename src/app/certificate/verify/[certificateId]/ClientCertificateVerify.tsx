@@ -3,10 +3,19 @@
 import { useEffect, useState } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import CertificateDisplay from '@/components/certificate/CertificateDisplay'
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, XCircle, Shield, Loader2 } from 'lucide-react'
+
+// Dynamic import to avoid SSR issues
+const CertificateDisplay = dynamic(
+  () => import('@/components/certificate/CertificateDisplay'),
+  { 
+    ssr: false,
+    loading: () => <div className="animate-pulse bg-gray-200 h-96 rounded-lg" />
+  }
+)
 
 interface ClientCertificateVerifyProps {
   certificateId: string
