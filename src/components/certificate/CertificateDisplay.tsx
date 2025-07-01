@@ -85,10 +85,35 @@ export default function CertificateDisplay({
 
     setIsDownloading(true)
     try {
-      // Download certificate PDF
-      window.open(certificate.certificateUrl, '_blank')
+      // Use API endpoint to download certificate
+      const response = await fetch(`/api/certificate/download/${certificate.id}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to download certificate')
+      }
+      
+      // Get the blob from response
+      const blob = await response.blob()
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `certificate-${certificate.id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      }, 100)
     } catch (error) {
       console.error('Download error:', error)
+      // Fallback to opening certificateUrl if available
+      if (certificate.certificateUrl) {
+        window.open(certificate.certificateUrl, '_blank')
+      }
     } finally {
       setIsDownloading(false)
     }
