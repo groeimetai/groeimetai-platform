@@ -118,11 +118,18 @@ export function downloadCertificateAsHTML(certificate: any) {
         ` : ''}
         
         <p class="completion-date">
-            Completed on ${new Date(certificate.completionDate).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            })}
+            Completed on ${certificate.completionDate ? 
+                new Date(certificate.completionDate).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                }) : 
+                new Date().toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                })
+            }
         </p>
         
         ${certificate.certificateNumber ? `

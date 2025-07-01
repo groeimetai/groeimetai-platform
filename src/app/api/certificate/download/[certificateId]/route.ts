@@ -27,18 +27,18 @@ export async function GET(
     // Otherwise, generate PDF on the fly
     console.log('Generating certificate PDF on the fly for:', certificateId)
     
-    // Prepare certificate data for PDF generation
+    // Prepare certificate data for PDF generation with date validation
     const certificateData = {
       id: certificateId,
       studentName: certificate.studentName,
       courseName: certificate.courseName,
       instructorName: certificate.instructorName,
-      completionDate: certificate.completionDate,
+      completionDate: certificate.completionDate ? new Date(certificate.completionDate) : new Date(),
       certificateNumber: (certificate as any).certificateNumber || certificateId,
       grade: (certificate as any).grade || 'Completed',
       score: (certificate as any).score || 100,
       achievements: (certificate as any).achievements || [],
-      qrCode: certificate.qrCode,
+      qrCode: certificate.qrCode || '',
       organizationName: CERTIFICATE_CONFIG.organizationName,
       organizationLogo: CERTIFICATE_CONFIG.organizationLogo,
       organizationWebsite: CERTIFICATE_CONFIG.organizationWebsite,
@@ -51,12 +51,16 @@ export async function GET(
     // Convert blob to buffer
     const buffer = Buffer.from(await pdfBlob.arrayBuffer())
     
-    // Return PDF with proper headers
+    // Check content type and return appropriately
+    const contentType = pdfBlob.type === 'text/html' ? 'text/html' : 'application/pdf'
+    const fileExtension = contentType === 'text/html' ? 'html' : 'pdf'
+    
+    // Return with proper headers
     return new NextResponse(buffer, {
       status: 200,
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="certificate-${certificateId}.pdf"`,
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="certificate-${certificateId}.${fileExtension}"`,
         'Content-Length': buffer.length.toString(),
       },
     })

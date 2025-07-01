@@ -286,7 +286,10 @@ const CertificatePDF: React.FC<{ data: CertificateData }> = ({ data }) => (
           )}
 
           <Text style={styles.completionDate}>
-            Completed on {format(data.completionDate, 'MMMM d, yyyy')}
+            Completed on {format(
+              data.completionDate instanceof Date ? data.completionDate : new Date(data.completionDate || new Date()), 
+              'MMMM d, yyyy'
+            )}
           </Text>
         </View>
 
