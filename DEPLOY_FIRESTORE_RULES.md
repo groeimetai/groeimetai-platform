@@ -1,6 +1,6 @@
 # Deploy Firestore Security Rules
 
-De Firestore security rules zijn geüpdatet om certificaat generatie mogelijk te maken. Volg deze stappen om ze te deployen:
+De Firestore security rules zijn geüpdatet om certificaat generatie en referral programma's mogelijk te maken. Volg deze stappen om ze te deployen:
 
 ## Stap 1: Firebase Login
 ```bash
@@ -27,6 +27,14 @@ firebase deploy --only firestore:rules
 - Gebruikers kunnen nu certificaten aanmaken voor zichzelf
 - Dit maakt client-side certificaat generatie mogelijk
 
+### Referral Programs Collection (NIEUW)
+- Gebruikers kunnen referral programma's lezen en aanmaken
+- Gebruikers kunnen hun eigen referral programma's updaten
+
+### Referral Stats Collection (NIEUW)
+- Gebruikers kunnen hun eigen referral statistieken lezen, aanmaken en updaten
+- Dit lost de "Missing or insufficient permissions" error op
+
 ## Sync Bestaande Voortgang
 
 Als je al cursussen hebt voltooid maar geen certificaten hebt, kun je het sync script gebruiken:
@@ -43,6 +51,11 @@ Dit script zal:
 
 ### Voor Alle Gebruikers (Admin):
 Als je admin bent, kun je het `generate-missing-certificates.ts` script gebruiken om certificaten voor alle gebruikers te genereren.
+
+## Opgeloste Errors
+
+### TypeError: Cannot read properties of undefined (reading 'includes')
+Dit is opgelost door ervoor te zorgen dat `completedLessons` altijd een array is in de enrollmentService. Bestaande enrollments zonder dit veld zullen automatisch een lege array krijgen.
 
 ## Belangrijk
 
