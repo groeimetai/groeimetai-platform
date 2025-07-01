@@ -611,5 +611,3 @@ export default function CodeSandbox({
     </Card>
   );
 }
-
-export default CodeSandbox;
