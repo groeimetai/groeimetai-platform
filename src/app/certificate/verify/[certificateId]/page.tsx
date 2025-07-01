@@ -4,6 +4,7 @@ import CertificateDisplay from '@/components/certificate/CertificateDisplay'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, XCircle, Shield } from 'lucide-react'
+import { adminDb } from '@/lib/firebase/admin'
 
 interface PageProps {
   params: { certificateId: string }
@@ -11,18 +12,73 @@ interface PageProps {
 
 async function verifyCertificate(certificateId: string) {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/certificate/verify/${certificateId}`,
-      { cache: 'no-store' }
-    )
+    console.log('Verifying certificate:', certificateId)
     
-    if (!response.ok) {
-      return { success: false, message: 'Certificate not found' }
+    // Check if Firebase Admin is initialized
+    if (!adminDb) {
+      console.error('Firebase Admin not initialized')
+      return { 
+        success: false, 
+        message: 'Service temporarily unavailable' 
+      }
     }
     
-    return await response.json()
+    // Get certificate directly from Firestore Admin
+    const certificateDoc = await adminDb.collection('certificates').doc(certificateId).get()
+    
+    if (!certificateDoc.exists) {
+      console.log('Certificate not found')
+      return { 
+        success: false, 
+        message: 'Certificate not found' 
+      }
+    }
+    
+    const certificateData = certificateDoc.data()
+    
+    if (!certificateData || !certificateData.isValid) {
+      console.log('Certificate not valid')
+      return { 
+        success: false, 
+        message: 'Certificate has been revoked or is invalid' 
+      }
+    }
+    
+    // Update scan count
+    await adminDb.collection('certificates').doc(certificateId).update({
+      'stats.scanCount': (certificateData.stats?.scanCount || 0) + 1,
+      'stats.lastScannedAt': new Date()
+    })
+    
+    return {
+      success: true,
+      certificate: {
+        id: certificateDoc.id,
+        studentName: certificateData.studentName,
+        courseName: certificateData.courseName,
+        completionDate: certificateData.completionDate?.toDate ? certificateData.completionDate.toDate() : certificateData.completionDate,
+        grade: certificateData.grade || 'Completed',
+        score: certificateData.score || 100,
+        certificateNumber: certificateData.certificateNumber,
+        achievements: certificateData.achievements || [],
+        instructorName: certificateData.instructorName,
+        isValid: certificateData.isValid,
+        certificateUrl: certificateData.certificateUrl,
+        qrCode: certificateData.qrCode,
+      },
+      verificationDetails: {
+        verifiedAt: new Date(),
+        verificationMethod: 'id' as const,
+        scanCount: (certificateData.stats?.scanCount || 0) + 1,
+      },
+      message: 'Certificate is valid and authentic',
+    }
   } catch (error) {
-    return { success: false, message: 'Failed to verify certificate' }
+    console.error('Verify certificate error:', error)
+    return { 
+      success: false, 
+      message: 'Failed to verify certificate' 
+    }
   }
 }
 

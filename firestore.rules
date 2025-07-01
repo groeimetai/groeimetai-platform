@@ -98,6 +98,18 @@ service cloud.firestore {
       allow update: if isAuthenticated() && userId == request.auth.uid;
     }
     
+    // Instructors - allow read for authenticated users
+    match /instructors/{instructorId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only via Admin SDK
+    }
+    
+    // Certificate logs for audit trail
+    match /certificate_logs/{logId} {
+      allow read: if false; // Admin only
+      allow write: if isAuthenticated(); // Allow logging certificate events
+    }
+    
     // Admin collections - no access except via Admin SDK
     match /admin/{document=**} {
       allow read, write: if false;
