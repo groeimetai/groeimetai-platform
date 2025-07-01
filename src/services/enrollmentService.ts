@@ -66,9 +66,12 @@ export class EnrollmentService {
       if (querySnapshot.empty) return null
 
       const doc = querySnapshot.docs[0]
+      const data = doc.data()
       return {
         id: doc.id,
-        ...doc.data(),
+        ...data,
+        // Ensure completedLessons is always an array
+        completedLessons: data.completedLessons || [],
       } as Enrollment
     } catch (error) {
       console.error('Get user enrollment error:', error)
@@ -97,6 +100,8 @@ export class EnrollmentService {
         return {
           id: enrollmentDoc.id,
           ...enrollmentData,
+          // Ensure completedLessons is always an array
+          completedLessons: enrollmentData.completedLessons || [],
           course: courseData,
         } as Enrollment;
       }));
@@ -144,9 +149,12 @@ export class EnrollmentService {
 
       const enrollment = enrollmentDoc.data() as Enrollment
       
+      // Initialize completedLessons if it doesn't exist
+      const currentCompletedLessons = enrollment.completedLessons || []
+      
       // Add lesson to completed lessons if not already completed
-      if (!enrollment.completedLessons.includes(lessonId)) {
-        const updatedCompletedLessons = [...enrollment.completedLessons, lessonId]
+      if (!currentCompletedLessons.includes(lessonId)) {
+        const updatedCompletedLessons = [...currentCompletedLessons, lessonId]
         
         await updateDoc(enrollmentRef, {
           completedLessons: updatedCompletedLessons,

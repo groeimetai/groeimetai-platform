@@ -84,6 +84,20 @@ service cloud.firestore {
       allow delete: if false; // Only via Admin SDK
     }
     
+    // Referral programs - allow read/write for authenticated users
+    match /referralPrograms/{programId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+    }
+    
+    // Referral stats - users can manage their own
+    match /referralStats/{userId} {
+      allow read: if isAuthenticated() && userId == request.auth.uid;
+      allow create: if isAuthenticated() && userId == request.auth.uid;
+      allow update: if isAuthenticated() && userId == request.auth.uid;
+    }
+    
     // Admin collections - no access except via Admin SDK
     match /admin/{document=**} {
       allow read, write: if false;
