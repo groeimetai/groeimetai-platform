@@ -1,6 +1,6 @@
 import { Module } from '@/lib/data/courses'
 
-export const promptEngineeringModules: Module[] = [
+const promptEngineeringModules: Module[] = [
   {
     id: 'module-1',
     title: 'Introductie tot Large Language Models (LLMs)',
@@ -1533,3 +1533,5 @@ class MyAIWritingAssistant:
     }
   }
 ]
+
+export default promptEngineeringModules;
