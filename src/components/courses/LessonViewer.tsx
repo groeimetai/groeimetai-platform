@@ -186,9 +186,7 @@ export function LessonViewer({ lesson, savedCode, onCodeSave, courseId, course }
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="prose prose-lg max-w-none">
-            <MarkdownViewer content={lesson.content} />
-          </div>
+          <MarkdownViewer content={lesson.content} />
         </CardContent>
       </Card>
 
