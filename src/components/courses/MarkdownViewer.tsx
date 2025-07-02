@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { CodeBlock } from './CodeEditor'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import type { Components } from 'react-markdown'
 
 interface MarkdownViewerProps {
   content: string
@@ -9,100 +12,129 @@ interface MarkdownViewerProps {
 }
 
 export function MarkdownViewer({ content, className = '' }: MarkdownViewerProps) {
-  const [processedContent, setProcessedContent] = useState('')
-
-  useEffect(() => {
-    // Basic markdown parsing - in productie zou je een library zoals react-markdown gebruiken
-    let html = content
-
+  // Pre-process content to escape problematic patterns
+  const processedContent = content
+    // Preserve N8N/Make.com template expressions in code blocks
+    .replace(/```[\s\S]*?```/g, (match) => {
+      // Replace {{ with a placeholder inside code blocks to prevent React issues
+      return match.replace(/\{\{/g, '&#123;&#123;').replace(/\}\}/g, '&#125;&#125;')
+    })
+  const components: Components = {
     // Headers
-    html = html.replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-6 mb-3">$1</h3>')
-    html = html.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-8 mb-4">$1</h2>')
-    html = html.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-8 mb-4">$1</h1>')
-
-    // Bold and italic
-    html = html.replace(/\*\*\*(.*)\*\*\*/g, '<strong><em>$1</em></strong>')
-    html = html.replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
-    html = html.replace(/\*(.*)\*/g, '<em>$1</em>')
-
-    // Links
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>')
-
-    // Lists
-    html = html.replace(/^\* (.+)$/gim, '<li class="ml-4">• $1</li>')
-    html = html.replace(/^- (.+)$/gim, '<li class="ml-4">• $1</li>')
-    html = html.replace(/^\d+\. (.+)$/gim, '<li class="ml-4 list-decimal">$1</li>')
-
-    // Wrap consecutive list items
-    html = html.replace(/(<li class="ml-4">.*<\/li>\n)+/g, (match) => {
-      return `<ul class="space-y-1 my-4">${match}</ul>`
-    })
-    html = html.replace(/(<li class="ml-4 list-decimal">.*<\/li>\n)+/g, (match) => {
-      return `<ol class="space-y-1 my-4 list-decimal list-inside">${match}</ol>`
-    })
-
+    h1: ({ children }) => <h1 className="text-3xl font-bold mt-8 mb-4">{children}</h1>,
+    h2: ({ children }) => <h2 className="text-2xl font-bold mt-8 mb-4">{children}</h2>,
+    h3: ({ children }) => <h3 className="text-xl font-bold mt-6 mb-3">{children}</h3>,
+    h4: ({ children }) => <h4 className="text-lg font-bold mt-4 mb-2">{children}</h4>,
+    h5: ({ children }) => <h5 className="text-base font-bold mt-3 mb-2">{children}</h5>,
+    h6: ({ children }) => <h6 className="text-sm font-bold mt-3 mb-2">{children}</h6>,
+    
     // Paragraphs
-    html = html.replace(/\n\n/g, '</p><p class="mb-4">')
-    html = `<p class="mb-4">${html}</p>`
-
-    // Code blocks
-    html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-      return `<div class="my-4" data-code-block data-lang="${lang || 'text'}">${code.trim()}</div>`
-    })
-
-    // Inline code
-    html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">$1</code>')
-
+    p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
+    
+    // Links
+    a: ({ href, children }) => (
+      <a 
+        href={href} 
+        className="text-blue-600 hover:text-blue-700 hover:underline" 
+        target="_blank" 
+        rel="noopener noreferrer"
+      >
+        {children}
+      </a>
+    ),
+    
+    // Lists
+    ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-4 ml-4">{children}</ul>,
+    ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-4 ml-4">{children}</ol>,
+    li: ({ children }) => <li className="ml-2">{children}</li>,
+    
     // Blockquotes
-    html = html.replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-gray-300 pl-4 my-4 italic">$1</blockquote>')
-
-    // Horizontal rules
-    html = html.replace(/^---$/gim, '<hr class="my-8 border-gray-300">')
-
-    // Tables (basic support)
-    html = html.replace(/\|(.+)\|/g, (match) => {
-      const cells = match.split('|').filter(cell => cell.trim())
-      const isHeader = cells.every(cell => cell.includes('---'))
-      if (isHeader) return ''
+    blockquote: ({ children }) => (
+      <blockquote className="border-l-4 border-gray-300 pl-4 my-4 italic text-gray-700">
+        {children}
+      </blockquote>
+    ),
+    
+    // Code
+    code({ inline, className, children, ...props }) {
+      const match = /language-(\w+)/.exec(className || '')
+      const language = match ? match[1] : ''
       
-      const cellHtml = cells.map(cell => `<td class="border px-2 py-1">${cell.trim()}</td>`).join('')
-      return `<tr>${cellHtml}</tr>`
-    })
-
-    // Wrap tables
-    html = html.replace(/(<tr>.*<\/tr>\n)+/g, (match) => {
-      return `<table class="border-collapse border my-4">${match}</table>`
-    })
-
-    setProcessedContent(html)
-  }, [content])
-
-  useEffect(() => {
-    // Render code blocks with syntax highlighting
-    const codeBlocks = document.querySelectorAll('[data-code-block]')
-    codeBlocks.forEach((block) => {
-      const lang = block.getAttribute('data-lang') || 'text'
-      const code = block.textContent || ''
-      const wrapper = document.createElement('div')
-      wrapper.className = 'my-4'
-      block.parentNode?.replaceChild(wrapper, block)
-      
-      // For now, just render as pre block
-      // In production, you'd use a syntax highlighter
-      const pre = document.createElement('pre')
-      pre.className = 'bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto'
-      const codeEl = document.createElement('code')
-      codeEl.className = `language-${lang}`
-      codeEl.textContent = code
-      pre.appendChild(codeEl)
-      wrapper.appendChild(pre)
-    })
-  }, [processedContent])
+      return !inline && language ? (
+        <div className="my-4">
+          <SyntaxHighlighter
+            style={vscDarkPlus}
+            language={language}
+            PreTag="div"
+            customStyle={{
+              margin: 0,
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+            }}
+            {...props}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        </div>
+      ) : (
+        <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800" {...props}>
+          {children}
+        </code>
+      )
+    },
+    
+    // Pre (for code blocks without language)
+    pre: ({ children }) => (
+      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4">
+        {children}
+      </pre>
+    ),
+    
+    // Horizontal rule
+    hr: () => <hr className="my-8 border-gray-300" />,
+    
+    // Strong and emphasis
+    strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+    em: ({ children }) => <em className="italic">{children}</em>,
+    
+    // Tables
+    table: ({ children }) => (
+      <div className="overflow-x-auto my-4">
+        <table className="border-collapse border border-gray-300 w-full">
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
+    tbody: ({ children }) => <tbody>{children}</tbody>,
+    tr: ({ children }) => <tr className="border-b border-gray-300">{children}</tr>,
+    th: ({ children }) => (
+      <th className="border border-gray-300 px-4 py-2 text-left font-semibold">
+        {children}
+      </th>
+    ),
+    td: ({ children }) => (
+      <td className="border border-gray-300 px-4 py-2">{children}</td>
+    ),
+    
+    // Images
+    img: ({ src, alt }) => (
+      <img 
+        src={src} 
+        alt={alt || ''} 
+        className="max-w-full h-auto rounded-lg my-4" 
+      />
+    ),
+  }
 
   return (
-    <div 
-      className={`prose prose-lg max-w-none ${className}`}
-      dangerouslySetInnerHTML={{ __html: processedContent }}
-    />
+    <div className={`${className}`}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={components}
+      >
+        {processedContent}
+      </ReactMarkdown>
+    </div>
   )
 }

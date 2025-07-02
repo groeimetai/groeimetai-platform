@@ -1,5 +1,5 @@
 import { getCourseById } from '@/lib/data/courses';
-import { promptEngineeringModules } from '@/lib/data/course-content/prompt-engineering';
+import promptEngineeringModules from '@/lib/data/course-content/prompt-engineering';
 import { CourseHeader } from '@/components/courses/CourseHeader';
 import { notFound } from 'next/navigation';
 
