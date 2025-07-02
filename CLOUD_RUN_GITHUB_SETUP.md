@@ -64,8 +64,19 @@ echo -n "your-pinata-secret-key" | gcloud secrets create pinata-secret-api-key -
    - Klik "Authenticate" en geef toegang tot je GitHub
    - Repository: Selecteer `groeimetai/groeimetai-platform`
    - Branch: `main`
-   - Build Type: Dockerfile
+   - Build Type: **Dockerfile (with optional cloudbuild.yaml)**
    - Source location: `/` (root directory)
+   
+   **BELANGRIJK**: Klik op "SHOW ADVANCED SETTINGS" en voeg deze Build Substitutions toe:
+   ```
+   _NEXT_PUBLIC_FIREBASE_API_KEY = your-firebase-api-key
+   _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = your-auth-domain.firebaseapp.com
+   _NEXT_PUBLIC_FIREBASE_PROJECT_ID = your-project-id
+   _NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = your-bucket.appspot.com
+   _NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = your-sender-id
+   _NEXT_PUBLIC_FIREBASE_APP_ID = your-app-id
+   _NEXT_PUBLIC_CERTIFICATE_CONTRACT_POLYGON = 0x... (je contract address)
+   ```
 
 5. **Service configuratie**
    - Service name: `groeimetai-platform`

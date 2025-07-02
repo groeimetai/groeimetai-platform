@@ -1,7 +1,7 @@
 import { Module } from '@/lib/data/courses'
 import { lesson41 } from './lesson-4-1'
-import { lesson42 } from './lesson-4-2'
-import { lesson43 } from './lesson-4-3'
+import { lesson as lesson42 } from './lesson-4-2'
+import { lesson4_3 as lesson43 } from './lesson-4-3'
 
 export const module4: Module = {
   id: 'module-4',
