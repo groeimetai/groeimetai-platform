@@ -1,0 +1,106 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: groeimetai-platform
+  REGION: europe-west1
+  IMAGE: groeimetai-platform
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.IMAGE }}:${{ github.sha }} .
+          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.IMAGE }}:${{ github.sha }} ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.IMAGE }}:latest
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.IMAGE }}:latest
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.IMAGE }}:${{ github.sha }}
+          region: ${{ env.REGION }}
+          flags: |
+            --port=8080
+            --min-instances=1
+            --max-instances=10
+            --memory=2Gi
+            --cpu=2
+            --timeout=300
+            --concurrency=100
+            --platform=managed
+            --allow-unauthenticated
+            --service-account=${{ env.SERVICE_NAME }}@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+          env_vars: |
+            NODE_ENV=production
+            NEXT_PUBLIC_APP_URL=https://${{ env.SERVICE_NAME }}-${{ secrets.GCP_PROJECT_NUMBER }}-ew.a.run.app
+            NEXT_PUBLIC_BLOCKCHAIN_ENABLED=true
+            NEXT_PUBLIC_DEFAULT_NETWORK=polygon
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_CERTIFICATE_CONTRACT_POLYGON=${{ secrets.NEXT_PUBLIC_CERTIFICATE_CONTRACT_POLYGON }}
+            NEXT_PUBLIC_PINATA_GATEWAY=https://gateway.pinata.cloud
+          secrets: |
+            FIREBASE_PROJECT_ID=firebase-project-id:latest
+            FIREBASE_CLIENT_EMAIL=firebase-client-email:latest
+            FIREBASE_PRIVATE_KEY=firebase-private-key:latest
+            MOLLIE_API_KEY=mollie-api-key:latest
+            PRIVATE_KEY=blockchain-private-key:latest
+            BLOCKCHAIN_WEBHOOK_SECRET=blockchain-webhook-secret:latest
+            PINATA_API_KEY=pinata-api-key:latest
+            PINATA_SECRET_API_KEY=pinata-secret-api-key:latest
+
+      - name: Display Cloud Run URL
+        run: |
+          echo "🚀 Application deployed to: ${{ steps.deploy.outputs.url }}"
+          echo "Service URL: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Setup Cloud Scheduler for Queue Processing
+        run: |
+          # Create Cloud Scheduler job for blockchain queue processing
+          gcloud scheduler jobs create http blockchain-queue-processor \
+            --location=${{ env.REGION }} \
+            --schedule="*/5 * * * *" \
+            --uri="${{ steps.deploy.outputs.url }}/api/blockchain/process-queue" \
+            --http-method=POST \
+            --headers="Authorization=Bearer ${{ secrets.BLOCKCHAIN_WEBHOOK_SECRET }}" \
+            --attempt-deadline=300s \
+            --quiet || echo "Scheduler job already exists"
