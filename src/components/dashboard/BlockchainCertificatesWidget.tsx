@@ -15,7 +15,7 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { Certificate } from '@/types'
-import { toast } from 'sonner'
+import { toast } from '@/lib/utils/toast-helpers'
 
 interface BlockchainStats {
   total: number

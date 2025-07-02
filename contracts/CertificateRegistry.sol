@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title CertificateRegistry
@@ -12,10 +11,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  * @notice Gas-optimized for Polygon deployment with security features
  */
 contract CertificateRegistry is AccessControl, Pausable, ReentrancyGuard {
-    using Counters for Counters.Counter;
-
     // State variables
-    Counters.Counter private _certificateIdCounter;
+    uint256 private _certificateIdCounter;
     
     // Roles
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -92,8 +89,8 @@ contract CertificateRegistry is AccessControl, Pausable, ReentrancyGuard {
         require(!usedHashes[_ipfsHash], "Certificate already exists");
         
         // Increment counter and get new ID
-        _certificateIdCounter.increment();
-        uint256 newCertificateId = _certificateIdCounter.current();
+        _certificateIdCounter++;
+        uint256 newCertificateId = _certificateIdCounter;
         
         // Create certificate
         Certificate memory newCertificate = Certificate({
@@ -213,7 +210,7 @@ contract CertificateRegistry is AccessControl, Pausable, ReentrancyGuard {
      * @dev Get total number of certificates issued
      */
     function totalCertificates() external view returns (uint256) {
-        return _certificateIdCounter.current();
+        return _certificateIdCounter;
     }
     
     /**

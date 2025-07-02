@@ -1,0 +1,8 @@
+{
+  "network": "polygon-mainnet",
+  "chainId": "137",
+  "contractAddress": "0x9Ef945A0Bf892f239b0927758BE1a03346efe86E",
+  "deployedAt": "2025-07-02T15:56:55.867Z",
+  "deployer": "0xa4B8eE764e82EeB1D6e9035a98E124F80277621A",
+  "explorerUrl": "https://polygonscan.com/address/0x9Ef945A0Bf892f239b0927758BE1a03346efe86E"
+}

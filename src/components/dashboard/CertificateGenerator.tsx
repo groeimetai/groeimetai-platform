@@ -18,9 +18,11 @@ export function CertificateGenerator() {
   const [showAlert, setShowAlert] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      checkAndGenerateCertificates()
-    }
+    // Disable automatic checking to prevent errors
+    // Users can manually generate certificates if needed
+    // if (user) {
+    //   checkAndGenerateCertificates()
+    // }
   }, [user])
 
   const checkAndGenerateCertificates = async () => {
@@ -115,7 +117,12 @@ export function CertificateGenerator() {
           
           setProgress((generated / total) * 100)
         } catch (error) {
-          console.error(`Error generating certificate for course ${enrollment.courseId}:`, error)
+          // Silently skip courses that don't exist in Firestore
+          // These are likely static courses defined only in code
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          if (!errorMessage.includes('Course not found')) {
+            console.error(`Error generating certificate for course ${enrollment.courseId}:`, error)
+          }
         }
       }
       

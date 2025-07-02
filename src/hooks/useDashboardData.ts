@@ -81,13 +81,23 @@ export function useDashboardData(): DashboardData {
   }, [user]);
 
   const toDate = (timestamp: any): Date => {
+    if (!timestamp) {
+      return new Date(); // Return current date as fallback
+    }
     if (timestamp instanceof Date) {
       return timestamp;
     }
     if (timestamp && typeof timestamp.toDate === 'function') {
       return timestamp.toDate();
     }
-    return new Date(timestamp);
+    if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+      const date = new Date(timestamp);
+      // Check if date is valid
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    return new Date(); // Return current date as fallback for invalid dates
   };
 
   const generateRecentActivity = (
@@ -123,7 +133,8 @@ export function useDashboardData(): DashboardData {
         // Add lesson completion activities (simulated - in real app, track separately)
         if (enrollment.completedLessons && Array.isArray(enrollment.completedLessons)) {
           enrollment.completedLessons.forEach((lessonId, index) => {
-            const lessonDate = new Date(enrollment.enrolledAt);
+            const baseDate = toDate(enrollment.enrolledAt);
+            const lessonDate = new Date(baseDate);
             lessonDate.setHours(lessonDate.getHours() + index * 24); // Simulate daily progress
             
             activities.push({
@@ -153,9 +164,11 @@ export function useDashboardData(): DashboardData {
       });
     }
 
-    return activities.sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    return activities.sort((a, b) => {
+      const dateA = toDate(a.timestamp);
+      const dateB = toDate(b.timestamp);
+      return dateB.getTime() - dateA.getTime();
+    });
   };
 
   const calculateLearningStreak = (activities: Activity[]) => {

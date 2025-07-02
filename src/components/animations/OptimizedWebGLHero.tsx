@@ -3,7 +3,6 @@
 import { useRef, useMemo, useEffect, useState, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { 
-  Lod,
   Stats,
   Preload,
   AdaptiveDpr,
@@ -297,7 +296,7 @@ function MorphingScene() {
     <group ref={groupRef}>
       {/* Scene 1: Neural Network */}
       <group visible={sceneIndex === 0} scale={transitioning ? 0.8 : 1}>
-        <OptimizedNeuralNetwork />
+        {/* <OptimizedNeuralNetwork /> */}
         <InstancedParticles count={settings.particleCount} />
       </group>
       

@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { adminAuth, adminDb } from '@/lib/firebase/admin'
 import { CertificateService } from '@/services/certificateService'
 import { certificateQueue } from '@/lib/blockchain/certificate-queue'
-import { initAdmin } from '@/lib/firebaseAdmin'
-
-// Initialize admin SDK
-initAdmin()
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    // Check if Firebase is initialized
+    if (!adminAuth || !adminDb) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
     }
+    
+    // Get and verify the auth token
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    const userId = decodedToken.uid;
     
     const searchParams = request.nextUrl.searchParams
     const action = searchParams.get('action')
@@ -37,7 +41,7 @@ export async function GET(request: NextRequest) {
     
     // Get user's certificates with blockchain status
     if (action === 'user-certificates') {
-      const certificates = await CertificateService.getUserCertificates(session.user.id)
+      const certificates = await CertificateService.getUserCertificates(userId)
       
       // Enrich with blockchain status
       const enrichedCertificates = await Promise.all(
@@ -71,14 +75,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    // Check if Firebase is initialized
+    if (!adminAuth || !adminDb) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
     }
+    
+    // Get and verify the auth token
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    const userId = decodedToken.uid;
     
     const body = await request.json()
     const { action, certificateId, queueIds } = body
@@ -87,7 +100,7 @@ export async function POST(request: NextRequest) {
     if (action === 'enable' && certificateId) {
       // Verify user owns the certificate
       const certificate = await CertificateService.getCertificateById(certificateId)
-      if (!certificate || certificate.userId !== session.user.id) {
+      if (!certificate || certificate.userId !== userId) {
         return NextResponse.json(
           { error: 'Certificate not found or unauthorized' },
           { status: 404 }
@@ -118,7 +131,7 @@ export async function POST(request: NextRequest) {
     if (action === 'retry' && certificateId) {
       // Verify user owns the certificate
       const certificate = await CertificateService.getCertificateById(certificateId)
-      if (!certificate || certificate.userId !== session.user.id) {
+      if (!certificate || certificate.userId !== userId) {
         return NextResponse.json(
           { error: 'Certificate not found or unauthorized' },
           { status: 404 }
@@ -132,8 +145,13 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    // Process queue (admin only - you might want to add admin check)
-    if (action === 'process') {
+    // Admin-only actions
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    const userData = userDoc.data();
+    const isAdmin = userData?.role === 'admin' || userData?.email === 'admin@groeimetai.com';
+    
+    // Process queue (admin only)
+    if (action === 'process' && isAdmin) {
       await certificateQueue.processQueue()
       return NextResponse.json({ 
         success: true, 
@@ -142,7 +160,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Retry multiple failed items (admin only)
-    if (action === 'retry-failed' && queueIds) {
+    if (action === 'retry-failed' && queueIds && isAdmin) {
       await certificateQueue.retryFailed(queueIds)
       return NextResponse.json({ 
         success: true, 
@@ -151,7 +169,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Cleanup old items (admin only)
-    if (action === 'cleanup') {
+    if (action === 'cleanup' && isAdmin) {
       const daysToKeep = body.daysToKeep || 30
       const deleted = await certificateQueue.cleanup(daysToKeep)
       return NextResponse.json({ 

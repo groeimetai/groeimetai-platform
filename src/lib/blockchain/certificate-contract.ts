@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { Contract, BrowserProvider, JsonRpcProvider, Signer } from 'ethers';
 import CertificateRegistryABI from '../../../artifacts/contracts/CertificateRegistry.sol/CertificateRegistry.json';
 
 // Contract addresses per network
@@ -34,17 +34,17 @@ export interface Certificate {
 }
 
 export class CertificateContract {
-  private contract: ethers.Contract;
-  private provider: ethers.providers.Provider;
+  private contract: Contract;
+  private provider: BrowserProvider | JsonRpcProvider;
 
-  constructor(provider: ethers.providers.Provider, signer?: ethers.Signer) {
+  constructor(provider: BrowserProvider | JsonRpcProvider, signer?: Signer) {
     this.provider = provider;
     
     // Get network and contract address
     provider.getNetwork().then(network => {
       const contractAddress = getContractAddress(network.chainId);
       
-      this.contract = new ethers.Contract(
+      this.contract = new Contract(
         contractAddress,
         CertificateRegistryABI.abi,
         signer || provider
@@ -87,7 +87,7 @@ export class CertificateContract {
       const certificateIds = await this.contract.getStudentCertificates(studentAddress);
       
       const certificates = await Promise.all(
-        certificateIds.map(async (id: ethers.BigNumber) => {
+        certificateIds.map(async (id: any) => {
           const cert = await this.contract.getCertificate(id);
           return {
             id: id.toString(),
@@ -196,7 +196,7 @@ export class CertificateContract {
 }
 
 // Hook for React components
-export function useCertificateContract(signer?: ethers.Signer) {
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
+export function useCertificateContract(signer?: Signer) {
+  const provider = new BrowserProvider(window.ethereum);
   return new CertificateContract(provider, signer);
 }

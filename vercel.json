@@ -59,5 +59,11 @@
       "destination": "/cursussen",
       "permanent": false
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/blockchain/process-queue",
+      "schedule": "*/5 * * * *"
+    }
   ]
 }

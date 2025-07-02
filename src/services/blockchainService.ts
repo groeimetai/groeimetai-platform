@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { id as ethersId } from 'ethers'
 import { 
   getWeb3Provider, 
   Web3Provider,
@@ -447,7 +447,7 @@ export class BlockchainService {
     const filter = {
       address: getContractAddress('certificateRegistry', this.currentNetwork),
       topics: [
-        ethers.utils.id('CertificateMinted(uint256,address,string,string,uint256,string)'),
+        ethersId('CertificateMinted(uint256,address,string,string,uint256,string)'),
       ],
     }
 

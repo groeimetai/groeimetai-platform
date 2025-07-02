@@ -89,16 +89,10 @@ cp .env.example .env
 
 Vul in:
 ```env
-# Van Alchemy
-POLYGON_RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/[JOUW-KEY]
-MUMBAI_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/[JOUW-KEY]
 
-# Van Pinata
-PINATA_API_KEY=[jouw-api-key]
-PINATA_SECRET_API_KEY=[jouw-secret]
 
 # Van MetaMask (alleen voor deployment)
-PRIVATE_KEY=[jouw-private-key]
+
 ```
 
 ## 🎮 Testen

@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { WalletConnect } from '@/components/blockchain/WalletConnect'
+import WalletConnect from '@/components/blockchain/WalletConnect'
 import BlockchainStatus from '@/components/blockchain/BlockchainStatus'
 import {
   Shield,
@@ -46,7 +46,7 @@ import {
   ArrowLeft
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { toast } from 'sonner'
+import { toast } from '@/lib/utils/toast-helpers'
 
 interface BlockchainCertificate {
   id: string

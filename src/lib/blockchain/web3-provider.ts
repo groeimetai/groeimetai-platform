@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { BrowserProvider, JsonRpcProvider, Signer, formatEther, parseUnits } from 'ethers'
 import { 
   NETWORK_CONFIGS, 
   BLOCKCHAIN_SERVICE_CONFIG, 
@@ -12,16 +12,16 @@ export interface WalletState {
   address: string | null
   chainId: number | null
   balance: string | null
-  provider: ethers.providers.Web3Provider | null
-  signer: ethers.Signer | null
+  provider: BrowserProvider | null
+  signer: Signer | null
 }
 
 export type WalletConnectMethod = 'metamask' | 'walletconnect' | 'coinbase'
 
 export class Web3Provider {
   private static instance: Web3Provider
-  private provider: ethers.providers.Web3Provider | null = null
-  private signer: ethers.Signer | null = null
+  private provider: BrowserProvider | null = null
+  private signer: Signer | null = null
   private listeners: ((state: WalletState) => void)[] = []
   private currentNetwork: NetworkType = BLOCKCHAIN_SERVICE_CONFIG.defaultNetwork
   
@@ -125,7 +125,7 @@ export class Web3Provider {
       }
 
       // Setup provider and signer
-      this.provider = new ethers.providers.Web3Provider(window.ethereum)
+      this.provider = new BrowserProvider(window.ethereum)
       this.signer = this.provider.getSigner()
       
       // Get network info
@@ -244,7 +244,7 @@ export class Web3Provider {
     
     try {
       const balance = await this.provider.getBalance(address)
-      return ethers.utils.formatEther(balance)
+      return formatEther(balance)
     } catch (error) {
       console.error('Error getting balance:', error)
       return '0'
@@ -270,14 +270,14 @@ export class Web3Provider {
   /**
    * Get provider instance
    */
-  getProvider(): ethers.providers.Web3Provider | null {
+  getProvider(): BrowserProvider | null {
     return this.provider
   }
 
   /**
    * Get signer instance
    */
-  getSigner(): ethers.Signer | null {
+  getSigner(): Signer | null {
     return this.signer
   }
 
@@ -306,8 +306,8 @@ export class Web3Provider {
    * Send transaction with proper error handling
    */
   async sendTransaction(
-    transaction: ethers.providers.TransactionRequest
-  ): Promise<ethers.providers.TransactionResponse> {
+    transaction: any
+  ): Promise<any> {
     if (!this.signer) {
       throw new Error(BLOCKCHAIN_ERRORS.WALLET_NOT_CONNECTED)
     }
@@ -342,7 +342,7 @@ export class Web3Provider {
   async waitForTransaction(
     txHash: string,
     confirmations?: number
-  ): Promise<ethers.providers.TransactionReceipt> {
+  ): Promise<any> {
     if (!this.provider) {
       throw new Error(BLOCKCHAIN_ERRORS.WALLET_NOT_CONNECTED)
     }
@@ -361,9 +361,9 @@ export class Web3Provider {
   /**
    * Get read-only provider for querying blockchain
    */
-  static getReadOnlyProvider(network: NetworkType = BLOCKCHAIN_SERVICE_CONFIG.defaultNetwork): ethers.providers.JsonRpcProvider {
+  static getReadOnlyProvider(network: NetworkType = BLOCKCHAIN_SERVICE_CONFIG.defaultNetwork): JsonRpcProvider {
     const config = getBlockchainConfig(network)
-    return new ethers.providers.JsonRpcProvider(config.rpcUrl)
+    return new JsonRpcProvider(config.rpcUrl)
   }
 }
 
@@ -386,7 +386,7 @@ export function useWeb3Provider() {
     connect: (method?: WalletConnectMethod) => getWeb3Provider().connect(method),
     disconnect: () => getWeb3Provider().disconnect(),
     switchNetwork: (network: NetworkType) => getWeb3Provider().switchNetwork(network),
-    sendTransaction: (tx: ethers.providers.TransactionRequest) => getWeb3Provider().sendTransaction(tx),
+    sendTransaction: (tx: any) => getWeb3Provider().sendTransaction(tx),
     waitForTransaction: (txHash: string, confirmations?: number) => 
       getWeb3Provider().waitForTransaction(txHash, confirmations),
   }

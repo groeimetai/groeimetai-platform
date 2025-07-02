@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { CheckCircle, XCircle, Clock, Loader2, ArrowRight } from 'lucide-react';
 
 type PaymentStatus = 'paid' | 'failed' | 'canceled' | 'expired' | 'pending' | 'open';
 
-export default function PaymentCompletePage() {
+function PaymentCompleteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, getIdToken, loading: authLoading } = useAuth();
@@ -253,5 +253,20 @@ export default function PaymentCompletePage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PaymentCompletePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Laden...</span>
+        </div>
+      </div>
+    }>
+      <PaymentCompleteContent />
+    </Suspense>
   );
 }

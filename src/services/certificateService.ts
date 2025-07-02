@@ -18,10 +18,12 @@ import { generateCertificatePDF } from './certificatePDFGenerator'
 import crypto from 'crypto'
 import { db, storage } from '@/lib/firebase'
 import { Certificate, User, Course, AssessmentAttempt, Enrollment } from '@/types'
+import { getCourseById } from '@/lib/data/courses'
 import { BlockchainCertificate, CertificateVerification } from '@/types/certificate'
 import { AssessmentService } from './assessmentService'
 import { EnrollmentService } from './enrollmentService'
 import { getBlockchainService } from './blockchainService'
+import { getServerBlockchainService } from './serverBlockchainService'
 import { certificateQueue } from '@/lib/blockchain/certificate-queue'
 
 // Certificate configuration
@@ -113,11 +115,23 @@ export class CertificateService {
         getDoc(doc(db, 'courses', courseId))
       ])
 
+      if (!userDoc.exists()) {
+        throw new Error(`User not found: ${userId}`)
+      }
+      
+      if (!courseDoc.exists()) {
+        throw new Error(`Course not found: ${courseId}`)
+      }
+
       const userData = userDoc.data() as User
       const courseData = courseDoc.data() as Course
 
-      if (!userData || !courseData) {
-        throw new Error('Required data not found')
+      if (!userData) {
+        throw new Error('User data is empty')
+      }
+      
+      if (!courseData) {
+        throw new Error('Course data is empty')
       }
 
       // Calculate completion time in hours
@@ -125,13 +139,21 @@ export class CertificateService {
         (enrollmentData.completedAt.getTime() - enrollmentData.enrolledAt.getTime()) / (1000 * 60 * 60)
       )
 
+      // Handle instructor name - it might be a string or an object
+      let instructorName = 'GroeimetAI Academy'
+      if (typeof courseData.instructor === 'string') {
+        instructorName = courseData.instructor
+      } else if (courseData.instructor && typeof courseData.instructor === 'object' && courseData.instructor.displayName) {
+        instructorName = courseData.instructor.displayName
+      }
+
       // Generate certificate with completion-based values
       return await this.generateCertificate({
         userId,
         courseId,
-        studentName: userData.displayName,
-        courseName: courseData.title,
-        instructorName: courseData.instructor.displayName,
+        studentName: userData.displayName || userData.email || 'Student',
+        courseName: courseData.title || 'Course',
+        instructorName,
         instructorTitle: 'Course Instructor',
         score: 100, // Full completion
         grade: 'Completed',
@@ -139,7 +161,11 @@ export class CertificateService {
         achievements: ['Course Completed', 'All Lessons Finished'],
       })
     } catch (error) {
-      console.error('Generate certificate for course completion error:', error)
+      // Only log non-course-not-found errors
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      if (!errorMessage.includes('Course not found')) {
+        console.error('Generate certificate for course completion error:', error)
+      }
       throw error
     }
   }
@@ -280,67 +306,59 @@ export class CertificateService {
       
       if (BLOCKCHAIN_CONFIG.enabled && !BLOCKCHAIN_CONFIG.mockMode) {
         try {
-          const blockchainService = getBlockchainService()
+          // Use server-side blockchain service for automatic minting
+          const serverBlockchain = getServerBlockchainService()
           
-          // Check if wallet is connected and has minting permissions
-          const walletState = blockchainService.getWalletState()
-          if (walletState.isConnected && walletState.address) {
-            const canMint = await blockchainService.canMintCertificates(walletState.address)
+          // Check if server can mint
+          const canMint = await serverBlockchain.canMint()
+          
+          if (canMint) {
+            console.log('🚀 Automatically minting certificate to blockchain...')
             
-            if (canMint) {
-              // Try immediate minting first
-              try {
-                const mintResult = await blockchainService.mintCertificate({
-                  studentAddress: walletState.address, // For now, mint to the minter's address
-                  studentName: params.studentName,
-                  courseId: params.courseId,
-                  courseName: params.courseName,
-                  instructorName: params.instructorName,
-                  completionDate: new Date(),
-                  certificateNumber,
-                  certificateId,
-                  grade: params.grade,
-                  score: params.score,
-                  achievements: params.achievements,
-                })
-                
-                if (mintResult.success && mintResult.blockchainCertificate) {
-                  blockchainData = mintResult.blockchainCertificate
-                } else {
-                  throw new Error(mintResult.error || 'Minting failed')
-                }
-              } catch (mintError) {
-                console.warn('Immediate minting failed, adding to queue:', mintError)
-                
-                // Add to queue for retry
-                queueId = await certificateQueue.addToQueue({
-                  certificateId,
-                  userId: params.userId,
-                  courseId: params.courseId,
-                  mintData: {
-                    studentAddress: walletState.address,
-                    studentName: params.studentName,
-                    courseName: params.courseName,
-                    instructorName: params.instructorName,
-                    completionDate: new Date(),
-                    certificateNumber,
-                    grade: params.grade,
-                    score: params.score,
-                    achievements: params.achievements,
-                  },
-                  priority: params.score >= 95 ? 10 : 0, // Higher priority for high scores
-                })
-              }
-            } else {
-              console.warn('Wallet does not have minting permissions, adding to queue for later')
+            try {
+              // Get user data to find their wallet address (if available)
+              let studentAddress = '0x0000000000000000000000000000000000000000' // Default placeholder
               
-              // Add to queue for when permissions are granted
+              // Try to get user's wallet address from their profile
+              const userDoc = await getDoc(doc(db, 'users', params.userId))
+              if (userDoc.exists()) {
+                const userData = userDoc.data()
+                if (userData.walletAddress) {
+                  studentAddress = userData.walletAddress
+                }
+              }
+              
+              // Mint certificate using server wallet
+              const mintResult = await serverBlockchain.mintCertificate({
+                studentAddress, // Certificate belongs to student (even if minted by server)
+                studentName: params.studentName,
+                courseId: params.courseId,
+                courseName: params.courseName,
+                instructorName: params.instructorName,
+                completionDate: new Date(),
+                certificateNumber,
+                certificateId,
+                grade: params.grade,
+                score: params.score,
+                achievements: params.achievements,
+              })
+              
+              if (mintResult.success && mintResult.blockchainCertificate) {
+                blockchainData = mintResult.blockchainCertificate
+                console.log('✅ Certificate successfully minted on blockchain!')
+              } else {
+                throw new Error(mintResult.error || 'Minting failed')
+              }
+            } catch (mintError) {
+              console.warn('Automatic minting failed, adding to queue:', mintError)
+              
+              // Add to queue for retry
               queueId = await certificateQueue.addToQueue({
                 certificateId,
                 userId: params.userId,
                 courseId: params.courseId,
                 mintData: {
-                  studentAddress: walletState.address,
+                  studentAddress: '0x0000000000000000000000000000000000000000', // Will be updated when processed
                   studentName: params.studentName,
                   courseName: params.courseName,
                   instructorName: params.instructorName,
@@ -350,20 +368,19 @@ export class CertificateService {
                   score: params.score,
                   achievements: params.achievements,
                 },
-                priority: 0,
+                priority: params.score >= 95 ? 10 : 0, // Higher priority for high scores
               })
             }
           } else {
-            console.warn('Wallet not connected, certificate will be queued for blockchain minting')
+            console.warn('Server wallet cannot mint (low balance or no permissions), adding to queue')
             
-            // Queue for later when wallet is connected
-            // For now, store with placeholder address
+            // Add to queue for when server wallet is funded/has permissions
             queueId = await certificateQueue.addToQueue({
               certificateId,
               userId: params.userId,
               courseId: params.courseId,
               mintData: {
-                studentAddress: '0x0000000000000000000000000000000000000000', // Placeholder
+                studentAddress: '0x0000000000000000000000000000000000000000', // Will be updated when processed
                 studentName: params.studentName,
                 courseName: params.courseName,
                 instructorName: params.instructorName,

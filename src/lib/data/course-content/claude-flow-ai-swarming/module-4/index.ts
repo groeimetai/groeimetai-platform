@@ -1,4 +1,4 @@
-import { lesson41 } from './lesson-4-1';
+import { lesson as lesson41 } from './lesson-4-1';
 import { lesson42 } from './lesson-4-2';
 import { lesson43 } from './lesson-4-3';
 import { lesson44 } from './lesson-4-4';

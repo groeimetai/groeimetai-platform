@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { NETWORK_CONFIGS, BLOCKCHAIN_SERVICE_CONFIG, type NetworkType } from '@/lib/blockchain/config'
 import { Web3Provider } from '@/lib/blockchain/web3-provider'
-import { ethers } from 'ethers'
+import { formatUnits } from 'ethers'
 
 interface GasPrices {
   slow: string
@@ -76,7 +76,7 @@ export default function BlockchainStatus() {
       
       // Get gas price
       const gasPrice = await provider.getGasPrice()
-      const gasPriceGwei = ethers.utils.formatUnits(gasPrice, 'gwei')
+      const gasPriceGwei = formatUnits(gasPrice, 'gwei')
       
       // Calculate gas price tiers
       const baseGasPrice = parseFloat(gasPriceGwei)
