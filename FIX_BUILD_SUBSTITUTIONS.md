@@ -6,7 +6,7 @@ Je kreeg `Firebase: Error (auth/invalid-api-key)` tijdens de build omdat de Fire
 
 ## De Oplossing (SIMPEL!)
 
-We hebben de publieke Firebase configuratie gewoon in `.env.production` gezet. Deze waarden zijn **niet geheim** en mogen gewoon in Git staan. De Dockerfile kopieert deze file tijdens de build.
+We hebben de publieke Firebase configuratie direct in de Dockerfile gezet als ENV statements. Deze waarden zijn **niet geheim** en mogen gewoon in de Dockerfile staan.
 
 ### Waarom is dit veilig?
 

@@ -15,9 +15,23 @@ RUN npm ci
 # Copy all files
 COPY . .
 
-# Use production environment file for build
+# Set NODE_ENV to production
+ENV NODE_ENV=production
+
+# Set all environment variables explicitly for the build
 # These are PUBLIC values that are safe to expose
-COPY .env.production .env.production
+ENV NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyAcVXLLoHLOlybI9FACwhC7ZV50nVOCmM0
+ENV NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=groeimetai-platform.firebaseapp.com
+ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=groeimetai-platform
+ENV NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=groeimetai-platform.firebasestorage.app
+ENV NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1031990594888
+ENV NEXT_PUBLIC_FIREBASE_APP_ID=1:1031990594888:web:c707bf22aa511a101cf77d
+
+# Blockchain configuration
+ENV NEXT_PUBLIC_BLOCKCHAIN_ENABLED=true
+ENV NEXT_PUBLIC_DEFAULT_NETWORK=polygon
+ENV NEXT_PUBLIC_CERTIFICATE_CONTRACT_POLYGON=0x9Ef945A0Bf892f239b0927758BE1a03346efe86E
+ENV NEXT_PUBLIC_PINATA_GATEWAY=https://gateway.pinata.cloud
 
 # Build the Next.js application
 RUN npm run build
