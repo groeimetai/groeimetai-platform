@@ -1,10 +1,11 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_note": "This file is kept for reference but is not used for Cloud Run deployment",
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "regions": ["ams1"],
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
@@ -58,6 +59,12 @@
       "source": "/courses",
       "destination": "/cursussen",
       "permanent": false
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/blockchain/process-queue",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

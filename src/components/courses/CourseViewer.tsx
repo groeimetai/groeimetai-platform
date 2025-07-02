@@ -87,7 +87,25 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
       const newCompletedLessons = [...completedLessons, currentLessonId];
       setCompletedLessons(newCompletedLessons);
       if (user) {
+        // Save video progress
         await saveProgress(course.id, currentLessonId, 0, 100, true);
+        
+        // Update enrollment with completed lesson
+        try {
+          const enrollment = await EnrollmentService.getUserEnrollment(user.uid, course.id);
+          if (enrollment) {
+            // Update completed lessons in enrollment
+            await EnrollmentService.markLessonCompleted(enrollment.id, currentLessonId);
+            
+            // Calculate and update overall progress
+            const allLessonIds = courseModules.flatMap(m => m.lessons.map(l => l.id));
+            const progress = Math.round((newCompletedLessons.length / allLessonIds.length) * 100);
+            await EnrollmentService.updateEnrollmentProgress(enrollment.id, progress, currentLessonId);
+          }
+        } catch (error) {
+          console.error('Error updating enrollment progress:', error);
+        }
+        
         // Check if course is now complete
         checkCourseCompletion(newCompletedLessons);
       }
@@ -108,14 +126,31 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
     if (isComplete && !hasCheckedCompletion && user) {
       setHasCheckedCompletion(true);
       
+      // Update enrollment status first
+      await EnrollmentService.completeEnrollment(user.uid, course.id);
+      
       // Check if certificate already exists
       const existingCertificate = await CertificateService.getUserCourseCertificate(user.uid, course.id);
       if (existingCertificate) {
         setCertificate(existingCertificate);
+      } else {
+        // Automatically generate certificate for course completion
+        try {
+          const certificateId = await CertificateService.generateCertificateForCourseCompletion(
+            user.uid,
+            course.id
+          );
+          
+          if (certificateId) {
+            const newCertificate = await CertificateService.getCertificateById(certificateId);
+            if (newCertificate) {
+              setCertificate(newCertificate);
+            }
+          }
+        } catch (error) {
+          console.error('Error auto-generating certificate:', error);
+        }
       }
-      
-      // Update enrollment status
-      await EnrollmentService.completeEnrollment(user.uid, course.id);
       
       // Show completion modal
       setShowCompletionModal(true);
@@ -211,11 +246,43 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
         .map(p => p.lessonId);
       
       if (completedFromDb.length > 0) {
-        setCompletedLessons(prev => [...new Set([...prev, ...completedFromDb])]);
+        const updatedCompletedLessons = [...new Set([...completedLessons, ...completedFromDb])];
+        setCompletedLessons(updatedCompletedLessons);
+        
+        // Sync video progress to enrollment for existing data
+        try {
+          const enrollment = await EnrollmentService.getUserEnrollment(user.uid, course.id);
+          if (enrollment) {
+            // Check if enrollment needs updating
+            const needsUpdate = completedFromDb.some(lessonId => 
+              !enrollment.completedLessons?.includes(lessonId)
+            );
+            
+            if (needsUpdate) {
+              console.log('Syncing video progress to enrollment...');
+              // Update enrollment with all completed lessons
+              for (const lessonId of completedFromDb) {
+                if (!enrollment.completedLessons?.includes(lessonId)) {
+                  await EnrollmentService.markLessonCompleted(enrollment.id, lessonId);
+                }
+              }
+              
+              // Update overall progress
+              const allLessonIds = courseModules.flatMap(m => m.lessons.map(l => l.id));
+              const progress = Math.round((updatedCompletedLessons.length / allLessonIds.length) * 100);
+              await EnrollmentService.updateEnrollmentProgress(enrollment.id, progress, null);
+            }
+          }
+        } catch (error) {
+          console.error('Error syncing progress to enrollment:', error);
+        }
+        
+        // Check if course is already completed
+        await checkCourseCompletion(updatedCompletedLessons);
       }
     };
     loadProgress();
-  }, [user, course.id, getCourseProgress, setCompletedLessons]);
+  }, [user, course.id, getCourseProgress]);
 
   if (courseModules.length === 0) {
     return (

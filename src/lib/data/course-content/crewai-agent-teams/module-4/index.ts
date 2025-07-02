@@ -1,5 +1,5 @@
 import { Module } from '@/lib/data/courses'
-import lesson4_1 from './lesson-4-1'
+import { lesson as lesson4_1 } from './lesson-4-1'
 import lesson4_2 from './lesson-4-2'
 import lesson4_3 from './lesson-4-3'
 import lesson4_4 from './lesson-4-4'

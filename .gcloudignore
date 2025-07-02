@@ -1,9 +1,15 @@
-# This file specifies files that are *not* uploaded to Google Cloud Platform
+# This file specifies files that are *not* uploaded to Google Cloud
 # using gcloud. It follows the same syntax as .gitignore, with the addition of
 # "#!include" directives (which insert the entries of the given .gitignore-style
 # file at that point).
-
+#
+# For more information, run:
+#   $ gcloud topic gcloudignore
+#
 .gcloudignore
+# If you would like to upload your .git directory, .gitignore file or files
+# from your .gitignore file, remove the corresponding line
+# below:
 .git
 .gitignore
 
@@ -16,49 +22,39 @@ yarn-error.log
 .next/
 out/
 
-# Development files
+# Local env files
+.env
 .env.local
-.env.development
-.env.test
-*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Testing
-coverage/
-.nyc_output
-cypress/videos
-cypress/screenshots
-
-# Misc
-.DS_Store
-*.pem
+# IDE
 .vscode/
 .idea/
 
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# OS
+.DS_Store
+
+# Test files
+coverage/
+.nyc_output/
+
+# Blockchain development files
+artifacts/
+cache/
+contracts/
+scripts/
+hardhat.config.js
 
 # Documentation
-docs/
 *.md
-!README.md
+LICENSE
 
-# Development Docker files
-docker-compose.dev.yml
-Dockerfile.dev
-nginx/nginx.dev.conf
+# GitHub
+.github/
 
-# Scripts not needed in production
-scripts/install-*.sh
-scripts/test-*.js
-
-# Firebase emulator
-firebase-debug.log
-firestore-debug.log
-ui-debug.log
-
-# Build artifacts that will be created during cloud build
-dist/
-build/
+# Temporary files
+*.log
+*.tmp
+*.temp

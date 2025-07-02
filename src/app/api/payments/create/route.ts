@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createMollieClient } from '@mollie/api-client';
-import { auth, firestore } from 'firebase-admin';
-
-const authClient: auth.Auth = auth();
-const db: firestore.Firestore = firestore();
+import { adminAuth, adminDb } from '@/lib/firebase/admin';
 
 // Initialize Mollie client (server-side only)
 const mollieClient = createMollieClient({
@@ -38,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await authClient.verifyIdToken(token);
+    const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
     // Parse request body
@@ -54,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is already enrolled
     const enrollmentId = `${userId}_${body.courseId}`;
-    const enrollmentDoc = await db.collection('enrollments').doc(enrollmentId).get();
+    const enrollmentDoc = await adminDb.collection('enrollments').doc(enrollmentId).get();
     
     if (enrollmentDoc.exists && enrollmentDoc.data()?.status === 'active') {
       return NextResponse.json(
@@ -64,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create payment document
-    const paymentRef = db.collection('payments').doc();
+    const paymentRef = adminDb.collection('payments').doc();
     const paymentData = {
       id: paymentRef.id,
       userId,

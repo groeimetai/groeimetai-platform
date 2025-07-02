@@ -192,7 +192,7 @@ export { default as lesson3_2 } from './module-3/lesson-3-2';
 export { default as lesson3_3 } from './module-3/lesson-3-3';
 export { default as lesson3_4 } from './module-3/lesson-3-4';
 
-export { default as lesson4_1 } from './module-4/lesson-4-1';
-export { default as lesson4_2 } from './module-4/lesson-4-2';
-export { default as lesson4_3 } from './module-4/lesson-4-3';
+export { lesson41 as lesson4_1 } from './module-4/lesson-4-1';
+export { lesson4_2 } from './module-4/lesson-4-2';
+export { lesson4_3 } from './module-4/lesson-4-3';
 export { default as lesson4_4 } from './module-4/lesson-4-4';

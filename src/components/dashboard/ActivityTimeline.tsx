@@ -2,23 +2,34 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid } from 'date-fns';
+import { nl } from 'date-fns/locale';
 import { BookOpen, CheckCircle, Award } from 'lucide-react';
 
 export type Activity = {
   id: string;
   type: string;
   description: string;
-  timestamp: string | Date;
+  timestamp: string | Date | any; // Allow any type for Firestore timestamps
+  title?: string; // Optional title property
+  metadata?: any; // Optional metadata
 };
 
 const activityIcons = {
   COURSE_ENROLLMENT: <BookOpen className="h-5 w-5 text-blue-500" />,
   LESSON_COMPLETION: <CheckCircle className="h-5 w-5 text-green-500" />,
   CERTIFICATE_EARNED: <Award className="h-5 w-5 text-purple-500" />,
+  course_started: <BookOpen className="h-5 w-5 text-blue-500" />,
+  course_completed: <Award className="h-5 w-5 text-green-500" />,
+  lesson_completed: <CheckCircle className="h-5 w-5 text-green-500" />,
+  certificate_earned: <Award className="h-5 w-5 text-purple-500" />,
 };
 
-export const ActivityTimeline = ({ activities }) => {
+interface ActivityTimelineProps {
+  activities: Activity[];
+}
+
+export const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
   if (!activities || activities.length === 0) {
     return (
       <Card>
@@ -47,7 +58,20 @@ export const ActivityTimeline = ({ activities }) => {
               <div className="ml-3 flex-grow">
                 <p className="text-sm text-gray-800">{activity.description}</p>
                 <p className="text-xs text-gray-500">
-                  {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                  {(() => {
+                    try {
+                      const date = new Date(activity.timestamp);
+                      if (isValid(date)) {
+                        return formatDistanceToNow(date, { 
+                          addSuffix: true,
+                          locale: nl 
+                        });
+                      }
+                      return 'Onbekende tijd';
+                    } catch {
+                      return 'Onbekende tijd';
+                    }
+                  })()}
                 </p>
               </div>
             </li>

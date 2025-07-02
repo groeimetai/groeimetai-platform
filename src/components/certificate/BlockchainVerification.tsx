@@ -1,252 +1,280 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { CheckCircle, Shield, ExternalLink, Copy, Loader2, AlertCircle } from 'lucide-react'
+import { useBlockchainService } from '@/services/blockchainService'
+import { formatAddress, getExplorerUrl } from '@/lib/blockchain/web3-provider'
+import { BLOCKCHAIN_ERRORS } from '@/lib/blockchain/config'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/components/ui/use-toast'
-import { CertificateService } from '@/services/certificateService'
-import { CertificateVerification } from '@/types/certificate'
-import QRCode from 'qrcode'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, Shield, ExternalLink, CheckCircle, XCircle, Wallet } from 'lucide-react'
+import type { Certificate, CertificateVerification } from '@/types/certificate'
 
 interface BlockchainVerificationProps {
-  certificateId: string
-  blockchainData?: {
-    hash: string
-    blockNumber: number
-    transactionId: string
-    networkId: string
-    explorerUrl: string
-    status: 'pending' | 'confirmed' | 'failed'
-  }
+  certificate: Certificate
+  onVerificationComplete?: (verification: CertificateVerification) => void
 }
 
-export default function BlockchainVerification({ certificateId, blockchainData }: BlockchainVerificationProps) {
+export function BlockchainVerification({ certificate, onVerificationComplete }: BlockchainVerificationProps) {
+  const {
+    isConnected,
+    address,
+    chainId,
+    connectWallet,
+    disconnectWallet,
+    verifyCertificate,
+    isLoading,
+    error
+  } = useBlockchainService()
+  
   const [verification, setVerification] = useState<CertificateVerification | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
-  const { toast } = useToast()
+  const [verifying, setVerifying] = useState(false)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
 
+  // Auto-verify if certificate has blockchain data
   useEffect(() => {
-    if (blockchainData?.hash) {
-      generateQRCode()
+    if (certificate.blockchain && certificate.blockchain.status === 'confirmed') {
+      handleVerify()
     }
-  }, [blockchainData])
+  }, [certificate])
 
-  const generateQRCode = async () => {
-    if (!blockchainData?.hash) return
+  const handleConnect = async () => {
+    try {
+      await connectWallet()
+    } catch (err) {
+      console.error('Failed to connect wallet:', err)
+    }
+  }
+
+  const handleVerify = async () => {
+    setVerifying(true)
+    setVerificationError(null)
     
     try {
-      const verificationUrl = `${window.location.origin}/certificate/verify/${certificateId}?chain=true`
-      const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      })
-      setQrCodeUrl(qrCodeDataUrl)
-    } catch (error) {
-      console.error('QR code generation error:', error)
-    }
-  }
-
-  const verifyOnBlockchain = async () => {
-    setLoading(true)
-    try {
-      const result = await CertificateService.verifyCertificateOnChain(certificateId)
-      setVerification(result)
+      const result = await verifyCertificate(certificate.id)
       
-      if (result.blockchainStatus === 'verified') {
-        toast({
-          title: 'Verificatie succesvol',
-          description: 'Dit certificaat is geverifieerd op de blockchain',
-        })
+      if (result.isValid && result.verification) {
+        setVerification(result.verification)
+        onVerificationComplete?.(result.verification)
       } else {
-        toast({
-          title: 'Verificatie mislukt',
-          description: 'De blockchain verificatie kon niet worden voltooid',
-          variant: 'destructive',
-        })
+        setVerificationError(result.error || 'Verification failed')
       }
-    } catch (error) {
-      console.error('Blockchain verification error:', error)
-      toast({
-        title: 'Fout',
-        description: 'Er is een fout opgetreden bij de verificatie',
-        variant: 'destructive',
-      })
+    } catch (err: any) {
+      setVerificationError(err.message || 'An error occurred during verification')
     } finally {
-      setLoading(false)
+      setVerifying(false)
     }
-  }
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: 'Gekopieerd',
-      description: `${label} is gekopieerd naar het klembord`,
-    })
-  }
-
-  const shortenHash = (hash: string) => {
-    return `${hash.slice(0, 6)}...${hash.slice(-6)}`
   }
 
   const getStatusBadge = () => {
-    if (verification?.blockchainStatus === 'verified' || blockchainData?.status === 'confirmed') {
-      return <Badge className="bg-green-500 text-white">Geverifieerd</Badge>
-    } else if (blockchainData?.status === 'pending') {
-      return <Badge className="bg-yellow-500 text-white">In afwachting</Badge>
-    } else {
-      return <Badge variant="destructive">Niet geverifieerd</Badge>
+    if (!certificate.blockchain) {
+      return <Badge variant="secondary">Not on blockchain</Badge>
+    }
+    
+    switch (certificate.blockchain.status) {
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>
+      case 'confirmed':
+        return <Badge variant="default" className="bg-green-600">Confirmed</Badge>
+      case 'failed':
+        return <Badge variant="destructive">Failed</Badge>
+      default:
+        return <Badge variant="secondary">Unknown</Badge>
+    }
+  }
+
+  const getVerificationStatus = () => {
+    if (!verification) return null
+    
+    switch (verification.blockchainStatus) {
+      case 'verified':
+        return (
+          <div className="flex items-center gap-2 text-green-600">
+            <CheckCircle className="h-5 w-5" />
+            <span className="font-medium">Verified on blockchain</span>
+          </div>
+        )
+      case 'invalid':
+        return (
+          <div className="flex items-center gap-2 text-red-600">
+            <XCircle className="h-5 w-5" />
+            <span className="font-medium">Invalid certificate</span>
+          </div>
+        )
+      case 'pending':
+        return (
+          <div className="flex items-center gap-2 text-yellow-600">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="font-medium">Blockchain confirmation pending</span>
+          </div>
+        )
+      default:
+        return null
     }
   }
 
   return (
-    <Card className="border-2">
+    <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <CardTitle>Blockchain Verificatie</CardTitle>
+            <Shield className="h-5 w-5" />
+            <CardTitle>Blockchain Verification</CardTitle>
           </div>
           {getStatusBadge()}
         </div>
         <CardDescription>
-          Dit certificaat is vastgelegd op de blockchain voor permanente verificatie
+          Verify this certificate's authenticity on the blockchain
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {blockchainData ? (
-          <>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">Transaction Hash</p>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {shortenHash(blockchainData.transactionId)}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(blockchainData.transactionId, 'Transaction hash')}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+        {/* Wallet Connection */}
+        {!isConnected ? (
+          <div className="space-y-4">
+            <Alert>
+              <AlertDescription>
+                Connect your wallet to verify certificates on the blockchain
+              </AlertDescription>
+            </Alert>
+            <Button onClick={handleConnect} disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Wallet className="mr-2 h-4 w-4" />
+              )}
+              Connect Wallet
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Connected Wallet Info */}
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 bg-green-500 rounded-full" />
+                <span className="text-sm font-medium">
+                  {formatAddress(address || '')}
+                </span>
               </div>
-
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">Block Number</p>
-                  <p className="text-xs text-muted-foreground">
-                    #{blockchainData.blockNumber.toLocaleString()}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(blockchainData.blockNumber.toString(), 'Block number')}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">Network</p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {blockchainData.networkId}
-                  </p>
-                </div>
-                <a
-                  href={blockchainData.explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  <Button variant="ghost" size="sm">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </a>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={disconnectWallet}
+              >
+                Disconnect
+              </Button>
             </div>
 
-            {qrCodeUrl && (
-              <div className="flex flex-col items-center space-y-2 p-4 border rounded-lg">
-                <p className="text-sm font-medium">Blockchain Verificatie QR Code</p>
-                <img src={qrCodeUrl} alt="Blockchain verification QR code" className="w-32 h-32" />
-                <p className="text-xs text-muted-foreground text-center">
-                  Scan om de blockchain verificatie te bekijken
-                </p>
-              </div>
-            )}
-
-            <Button 
-              onClick={verifyOnBlockchain} 
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifiëren...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Verifieer op Blockchain
-                </>
-              )}
-            </Button>
-
-            {verification && (
-              <div className={`p-4 rounded-lg ${
-                verification.blockchainStatus === 'verified' 
-                  ? 'bg-green-50 border-green-200' 
-                  : 'bg-red-50 border-red-200'
-              } border`}>
-                <div className="flex items-start gap-2">
-                  {verification.blockchainStatus === 'verified' ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">
-                      {verification.blockchainStatus === 'verified' 
-                        ? 'Certificaat geverifieerd' 
-                        : 'Verificatie mislukt'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {verification.blockchainStatus === 'verified'
-                        ? 'Dit certificaat is authentiek en ongewijzigd'
-                        : 'De certificaat data komt niet overeen met de blockchain record'}
-                    </p>
-                    {verification.details && (
-                      <div className="mt-2 text-xs space-y-1">
-                        <p>Original Hash: {shortenHash(verification.details.originalHash)}</p>
-                        <p>Current Hash: {shortenHash(verification.details.currentHash)}</p>
-                        <p>Match: {verification.details.matchesBlockchain ? '✓' : '✗'}</p>
-                      </div>
-                    )}
+            {/* Blockchain Details */}
+            {certificate.blockchain && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Blockchain Details</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Network:</span>
+                    <span className="font-mono">{certificate.blockchain.networkId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Transaction:</span>
+                    <a
+                      href={certificate.blockchain.explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-primary hover:underline"
+                    >
+                      <span className="font-mono">
+                        {formatAddress(certificate.blockchain.transactionId, 6)}
+                      </span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">IPFS Hash:</span>
+                    <span className="font-mono">
+                      {formatAddress(certificate.blockchain.hash, 6)}
+                    </span>
                   </div>
                 </div>
               </div>
             )}
-          </>
-        ) : (
-          <div className="text-center py-8">
-            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">
-              Blockchain verificatie is nog niet beschikbaar voor dit certificaat
-            </p>
+
+            {/* Verification Status */}
+            {verification && (
+              <div className="p-3 border rounded-lg">
+                {getVerificationStatus()}
+                {verification.details && (
+                  <div className="mt-2 space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Hash Match:</span>
+                      <span className={verification.details.matchesBlockchain ? 'text-green-600' : 'text-red-600'}>
+                        {verification.details.matchesBlockchain ? 'Valid' : 'Invalid'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Verified At:</span>
+                      <span>{new Date(verification.verifiedAt).toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Error Display */}
+            {(error || verificationError) && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {error || verificationError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Verify Button */}
+            {certificate.blockchain && !verification && (
+              <Button
+                onClick={handleVerify}
+                disabled={verifying}
+                className="w-full"
+              >
+                {verifying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Verify Certificate
+                  </>
+                )}
+              </Button>
+            )}
+
+            {/* Re-verify Button */}
+            {verification && (
+              <Button
+                onClick={handleVerify}
+                disabled={verifying}
+                variant="outline"
+                className="w-full"
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Re-verify Certificate
+              </Button>
+            )}
           </div>
+        )}
+
+        {/* No Blockchain Data */}
+        {!certificate.blockchain && isConnected && (
+          <Alert>
+            <AlertDescription>
+              This certificate has not been recorded on the blockchain yet.
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
     </Card>
   )
 }
+
+export default BlockchainVerification

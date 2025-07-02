@@ -19,7 +19,9 @@ import {
   Play,
   Award,
   Target,
-  Flame
+  Flame,
+  Shield,
+  ExternalLink
 } from 'lucide-react';
 import { EnrolledCoursesWidget } from '@/components/dashboard/EnrolledCoursesWidget';
 import { ProgressOverviewWidget } from '@/components/dashboard/ProgressOverviewWidget';
@@ -28,6 +30,8 @@ import { UpcomingLessons } from '@/components/dashboard/UpcomingLessons';
 import { AchievementsWidget } from '@/components/dashboard/AchievementsWidget';
 import { LearningStreakWidget } from '@/components/dashboard/LearningStreakWidget';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { CertificateGenerator } from '@/components/dashboard/CertificateGenerator';
+import { BlockchainCertificatesWidget } from '@/components/dashboard/BlockchainCertificatesWidget';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -158,6 +162,9 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Certificate Generator Alert */}
+        <CertificateGenerator />
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -171,6 +178,32 @@ export default function DashboardPage() {
 
             {/* Achievements */}
             <AchievementsWidget certificates={certificates} />
+            
+            {/* Blockchain Certificates */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <CardTitle>Blockchain Certificates</CardTitle>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => router.push('/blockchain')}
+                  >
+                    View All
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                <CardDescription>
+                  Secure your achievements on the blockchain
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BlockchainCertificatesWidget certificates={certificates} />
+              </CardContent>
+            </Card>
           </div>
 
           {/* Right Column - Sidebar */}
