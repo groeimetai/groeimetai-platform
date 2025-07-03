@@ -71,6 +71,8 @@ Thumbs.db
 **/*.key
 **/*.pem
 GITHUB_SECRETS_CHECKLIST.md
+gcp-sa-key*.json
+*-sa-key.json
 
 # Build artifacts
 .cache/

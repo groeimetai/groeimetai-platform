@@ -1,10 +1,40 @@
-# GroeiMetAI Blockchain Scripts
+# GroeimetAI Platform Scripts
 
-This directory contains scripts for deploying and managing the blockchain certificate system.
+This directory contains scripts for deploying and managing the GroeimetAI platform, including blockchain and cloud deployment.
 
 ## Available Scripts
 
-### 🚀 deploy-blockchain.sh
+### Google Cloud Deployment Scripts
+
+#### 🚀 setup-google-cloud.sh
+Complete setup script for Google Cloud deployment via GitHub Actions.
+
+```bash
+./scripts/setup-google-cloud.sh
+```
+
+Features:
+- Enables required Google Cloud APIs
+- Creates Artifact Registry repository
+- Sets up service account for GitHub Actions
+- Generates service account key
+- Provides complete setup instructions
+
+#### 📋 copy-sa-key.sh
+Helper script to copy service account key to clipboard for easy GitHub Secrets setup.
+
+```bash
+./scripts/copy-sa-key.sh gcp-sa-key-groeimetai.json
+```
+
+Works on:
+- macOS (pbcopy)
+- Linux (xclip/xsel)
+- Falls back to displaying content if clipboard tools not available
+
+### Blockchain Scripts
+
+#### 🚀 deploy-blockchain.sh
 Main deployment script for smart contracts. Handles deployment to Mumbai testnet and Polygon mainnet with automatic verification.
 
 ```bash
@@ -71,6 +101,24 @@ Creates:
 - Post-deployment checklist
 
 ## Usage Examples
+
+### Deploy to Google Cloud Run
+
+```bash
+# 1. Run the setup script
+./scripts/setup-google-cloud.sh
+
+# 2. Copy service account key to clipboard
+./scripts/copy-sa-key.sh gcp-sa-key-groeimetai.json
+
+# 3. Add to GitHub Secrets:
+#    - Go to Settings → Secrets and variables → Actions
+#    - Add GCP_SA_KEY with the clipboard content
+#    - Add all other required secrets (see GITHUB_ACTIONS_SETUP.md)
+
+# 4. Push to main branch to trigger deployment
+git push origin main
+```
 
 ### Deploy to Mumbai Testnet
 ```bash

@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: groeimetai
-  SERVICE_NAME: groeimetai-platform
-  REGION: europe-west1
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'groeimetai' }}
+  SERVICE_NAME: ${{ vars.SERVICE_NAME || 'groeimetai-platform' }}
+  REGION: ${{ vars.REGION || 'europe-west1' }}
 
 jobs:
   deploy:
