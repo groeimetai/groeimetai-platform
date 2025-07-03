@@ -70,6 +70,7 @@ Thumbs.db
 **/secrets/
 **/*.key
 **/*.pem
+GITHUB_SECRETS_CHECKLIST.md
 
 # Build artifacts
 .cache/
