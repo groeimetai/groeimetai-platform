@@ -66,10 +66,16 @@ gcloud services enable \
 # Create Artifact Registry repository
 echo ""
 echo "3️⃣  Creating Artifact Registry repository..."
-gcloud artifacts repositories create $ARTIFACT_REPO \
-    --repository-format=docker \
-    --location=$REGION \
-    --description="Docker repository for GroeimetAI Cursus Platform" 2>/dev/null || echo "ℹ️  Repository already exists"
+# First try to describe the repository to see if it exists
+if gcloud artifacts repositories describe $ARTIFACT_REPO --location=$REGION &>/dev/null; then
+    echo "ℹ️  Repository already exists"
+else
+    echo "Creating new repository..."
+    gcloud artifacts repositories create $ARTIFACT_REPO \
+        --repository-format=docker \
+        --location=$REGION \
+        --description="Docker repository for GroeimetAI Cursus Platform"
+fi
 
 # Check if service account exists
 echo ""
@@ -97,8 +103,8 @@ ROLES=(
     "roles/run.admin"
     "roles/storage.admin"
     "roles/artifactregistry.writer"
+    "roles/artifactregistry.admin"
     "roles/iam.serviceAccountUser"
-    "roles/containerregistry.ServiceAgent"
 )
 
 for ROLE in "${ROLES[@]}"; do
@@ -188,6 +194,9 @@ echo "4. Push to main branch to trigger deployment!"
 echo ""
 echo "5. Your app will be available at:"
 echo "   https://${SERVICE_NAME}-${PROJECT_ID}.${REGION}.run.app"
+echo ""
+echo "📦 Docker images will be stored in:"
+echo "   ${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPO}/${SERVICE_NAME}"
 echo ""
 if [ -f "$KEY_FILE" ]; then
     echo "⚠️  IMPORTANT: The file '$KEY_FILE' contains sensitive credentials!"

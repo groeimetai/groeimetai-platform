@@ -10,7 +10,9 @@
 6. Voeg de volgende rollen toe:
    - Cloud Run Admin
    - Service Account User
-   - Storage Admin (voor Container Registry)
+   - Storage Admin
+   - Artifact Registry Writer
+   - Artifact Registry Admin
 7. Klik op "Create Key" → JSON
 8. Download de JSON key file
 
@@ -57,13 +59,16 @@ Ga naar je GitHub repository → Settings → Secrets and variables → Actions
 
 ## Stap 3: Cloud Run voorbereiden
 
-1. Ga naar Cloud Run in Google Cloud Console
-2. Als je al een service hebt, verwijder deze of disable de GitHub trigger
+1. Run het setup script om Artifact Registry aan te maken:
+   ```bash
+   ./scripts/setup-google-cloud.sh
+   ```
+2. Als je al een Cloud Run service hebt, verwijder deze of disable de GitHub trigger
 3. De GitHub Action zal automatisch een nieuwe service aanmaken
 
 ## Stap 4: Deployment triggeren
 
-1. Push naar de `main` branch, of
+1. Push naar de `master` branch, of
 2. Ga naar Actions → Deploy to Cloud Run → Run workflow
 
 ## Belangrijke notities
