@@ -61,13 +61,20 @@ export const auth = new Proxy({} as Auth, {
   get(target, prop) {
     try {
       const instance = getAuthInstance()
-      return Reflect.get(instance, prop)
+      const value = Reflect.get(instance, prop)
+      // Bind methods to the instance
+      if (typeof value === 'function') {
+        return value.bind(instance)
+      }
+      return value
     } catch (error) {
       if (typeof window === 'undefined' && process.env.BUILDING === 'true') {
         // Return a no-op function for methods during build
         return () => {}
       }
-      throw error
+      console.warn('Firebase Auth not available:', error)
+      // Return a no-op function to prevent crashes
+      return () => {}
     }
   }
 })
@@ -76,13 +83,20 @@ export const db = new Proxy({} as Firestore, {
   get(target, prop) {
     try {
       const instance = getDbInstance()
-      return Reflect.get(instance, prop)
+      const value = Reflect.get(instance, prop)
+      // Bind methods to the instance
+      if (typeof value === 'function') {
+        return value.bind(instance)
+      }
+      return value
     } catch (error) {
       if (typeof window === 'undefined' && process.env.BUILDING === 'true') {
         // Return a no-op function for methods during build
         return () => {}
       }
-      throw error
+      console.warn('Firestore not available:', error)
+      // Return a no-op function to prevent crashes
+      return () => {}
     }
   }
 })
@@ -91,13 +105,20 @@ export const storage = new Proxy({} as FirebaseStorage, {
   get(target, prop) {
     try {
       const instance = getStorageInstance()
-      return Reflect.get(instance, prop)
+      const value = Reflect.get(instance, prop)
+      // Bind methods to the instance
+      if (typeof value === 'function') {
+        return value.bind(instance)
+      }
+      return value
     } catch (error) {
       if (typeof window === 'undefined' && process.env.BUILDING === 'true') {
         // Return a no-op function for methods during build
         return () => {}
       }
-      throw error
+      console.warn('Firebase Storage not available:', error)
+      // Return a no-op function to prevent crashes
+      return () => {}
     }
   }
 })

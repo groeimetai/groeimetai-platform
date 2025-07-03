@@ -9,9 +9,25 @@ import {
   orderBy,
   updateDoc,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  Firestore
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+
+// Lazy initialization of Firebase
+let dbInstance: Firestore | null = null;
+
+function getDb(): Firestore {
+  if (!dbInstance) {
+    try {
+      const { db } = require('@/lib/firebase');
+      dbInstance = db;
+    } catch (error) {
+      console.warn('Firebase not initialized:', error);
+      throw new Error('Firebase services not available');
+    }
+  }
+  return dbInstance;
+}
 
 export interface InstructorApplication {
   userId: string
@@ -56,6 +72,7 @@ export const instructorService = {
    */
   async createInstructorApplication(data: Omit<InstructorApplication, 'status' | 'submittedAt'>) {
     try {
+      const db = getDb();
       const applicationRef = doc(collection(db, 'instructor-applications'))
       await setDoc(applicationRef, {
         ...data,
@@ -74,6 +91,7 @@ export const instructorService = {
    */
   async getApplicationByUserId(userId: string) {
     try {
+      const db = getDb();
       const q = query(
         collection(db, 'instructor-applications'),
         where('userId', '==', userId),
@@ -98,6 +116,7 @@ export const instructorService = {
    */
   async isApprovedInstructor(userId: string) {
     try {
+      const db = getDb();
       const instructorDoc = await getDoc(doc(db, 'instructors', userId))
       if (!instructorDoc.exists()) return false
       
@@ -114,6 +133,7 @@ export const instructorService = {
    */
   async getInstructorProfile(userId: string) {
     try {
+      const db = getDb();
       const instructorDoc = await getDoc(doc(db, 'instructors', userId))
       if (!instructorDoc.exists()) return null
       
@@ -132,6 +152,7 @@ export const instructorService = {
    */
   async updateInstructorProfile(userId: string, updates: Partial<Instructor>) {
     try {
+      const db = getDb();
       const instructorRef = doc(db, 'instructors', userId)
       await updateDoc(instructorRef, {
         ...updates,
@@ -148,6 +169,7 @@ export const instructorService = {
    */
   async getActiveInstructors() {
     try {
+      const db = getDb();
       const q = query(
         collection(db, 'instructors'),
         where('status', '==', 'active'),
@@ -170,6 +192,7 @@ export const instructorService = {
    */
   async getInstructorStats(userId: string) {
     try {
+      const db = getDb();
       // Get courses by instructor
       const coursesQuery = query(
         collection(db, 'courses'),
