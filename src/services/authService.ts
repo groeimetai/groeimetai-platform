@@ -5,10 +5,22 @@ import {
   updateProfile,
   User as FirebaseUser,
   onAuthStateChanged,
+  Auth,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
-import { auth, db } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
+import { initializeAuth } from '@/lib/firebase/auth-init'
 import { User } from '@/types'
+
+// Auth instance will be initialized when needed
+let authInstance: Auth | null = null;
+
+async function getAuth(): Promise<Auth> {
+  if (!authInstance) {
+    authInstance = await initializeAuth();
+  }
+  return authInstance;
+}
 
 export class AuthService {
   /**
@@ -18,6 +30,7 @@ export class AuthService {
     let firebaseUser: FirebaseUser | null = null;
     
     try {
+      const auth = await getAuth();
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
       firebaseUser = userCredential.user
 
@@ -70,6 +83,7 @@ export class AuthService {
    */
   static async signIn(email: string, password: string): Promise<User> {
     try {
+      const auth = await getAuth();
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const firebaseUser = userCredential.user
 
@@ -91,6 +105,7 @@ export class AuthService {
    */
   static async signOut(): Promise<void> {
     try {
+      const auth = await getAuth();
       await signOut(auth)
     } catch (error) {
       console.error('Sign out error:', error)
@@ -103,6 +118,7 @@ export class AuthService {
    */
   static async getCurrentUser(): Promise<User | null> {
     try {
+      const auth = await getAuth();
       const firebaseUser = auth.currentUser
       if (!firebaseUser) return null
 
@@ -128,6 +144,7 @@ export class AuthService {
       })
 
       // Update Firebase Auth profile if display name or photo URL changed
+      const auth = await getAuth();
       if (auth.currentUser && (updates.displayName || updates.photoURL)) {
         await updateProfile(auth.currentUser, {
           displayName: updates.displayName || auth.currentUser.displayName,

@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
+import { User, onAuthStateChanged, signOut as firebaseSignOut, Auth } from 'firebase/auth';
+import { initializeAuth } from '@/lib/firebase/auth-init';
 import { getUserProfile, createUserProfile, UserProfile } from '@/lib/firebase/firestore';
 
 interface AuthContextType {
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      const auth = await initializeAuth();
       await firebaseSignOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);
@@ -70,17 +71,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    try {
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        setUser(user);
+    let unsubscribe: (() => void) | undefined;
+    
+    const setupAuth = async () => {
+      try {
+        const auth = await initializeAuth();
+        unsubscribe = onAuthStateChanged(auth, async (user) => {
+          setUser(user);
+          setLoading(false);
+        });
+      } catch (error) {
+        console.warn('Auth initialization skipped:', error);
         setLoading(false);
-      });
-
-      return () => unsubscribe();
-    } catch (error) {
-      console.warn('Auth initialization skipped:', error);
-      setLoading(false);
-    }
+      }
+    };
+    
+    setupAuth();
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   useEffect(() => {

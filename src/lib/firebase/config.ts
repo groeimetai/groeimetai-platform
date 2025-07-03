@@ -44,8 +44,12 @@ export const auth = (() => {
     } catch (error) {
       // Return a proxy that will throw when accessed
       return new Proxy({} as Auth, {
-        get() {
-          throw new Error('Firebase Auth not available during build');
+        get(target, prop) {
+          if (typeof window === 'undefined' && process.env.BUILDING === 'true') {
+            // Return no-op for server/build
+            return () => {};
+          }
+          throw new Error('Firebase Auth not available');
         }
       });
     }
@@ -60,8 +64,12 @@ export const db = (() => {
     } catch (error) {
       // Return a proxy that will throw when accessed
       return new Proxy({} as Firestore, {
-        get() {
-          throw new Error('Firestore not available during build');
+        get(target, prop) {
+          if (typeof window === 'undefined' && process.env.BUILDING === 'true') {
+            // Return no-op for server/build
+            return () => {};
+          }
+          throw new Error('Firestore not available');
         }
       });
     }
@@ -76,8 +84,12 @@ export const storage = (() => {
     } catch (error) {
       // Return a proxy that will throw when accessed
       return new Proxy({} as FirebaseStorage, {
-        get() {
-          throw new Error('Firebase Storage not available during build');
+        get(target, prop) {
+          if (typeof window === 'undefined' && process.env.BUILDING === 'true') {
+            // Return no-op for server/build
+            return () => {};
+          }
+          throw new Error('Firebase Storage not available');
         }
       });
     }

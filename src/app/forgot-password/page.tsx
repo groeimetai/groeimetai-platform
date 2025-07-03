@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
+import { initializeAuth } from '@/lib/firebase/auth-init';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +35,7 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
+      const auth = await initializeAuth();
       await sendPasswordResetEmail(auth, email);
       setIsEmailSent(true);
       toast({
