@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IndexingQueue } from '@/lib/rag/indexing-queue';
 
-// Initialize queue connection for progress monitoring
-const indexingQueue = new IndexingQueue({
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    password: process.env.REDIS_PASSWORD
+// Lazy initialize queue connection for progress monitoring
+let indexingQueue: IndexingQueue | null = null;
+
+function getIndexingQueue(): IndexingQueue {
+  if (!indexingQueue) {
+    indexingQueue = new IndexingQueue({
+      redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        password: process.env.REDIS_PASSWORD
+      }
+    });
   }
-});
+  return indexingQueue;
+}
 
 export async function GET(
   request: NextRequest,
@@ -25,7 +32,16 @@ export async function GET(
     }
 
     // Get job progress
-    const progress = await indexingQueue.getProgress(jobId);
+    let progress;
+    try {
+      progress = await getIndexingQueue().getProgress(jobId);
+    } catch (error) {
+      console.error('Failed to connect to indexing queue:', error);
+      return NextResponse.json(
+        { success: false, error: 'Indexing service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
     
     if (!progress) {
       return NextResponse.json(
