@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMollieClient } from '@mollie/api-client';
+import { createMollieClient, MollieClient } from '@mollie/api-client';
 import { getCourseById } from '@/lib/data/courses';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
-// Initialize Mollie client (server-side only)
-const mollieClient = createMollieClient({
-  apiKey: process.env.MOLLIE_API_KEY!,
-});
+// Lazy initialize Mollie client
+let mollieClient: MollieClient | null = null;
+
+function getMollieClient(): MollieClient {
+  if (!mollieClient) {
+    const apiKey = process.env.MOLLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error('MOLLIE_API_KEY is not configured');
+    }
+    mollieClient = createMollieClient({ apiKey });
+  }
+  return mollieClient;
+}
 
 interface CheckoutRequest {
   courseId: string;
@@ -31,13 +40,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Checkout API called');
     
-    // Check if Firebase is initialized
-    if (!adminAuth || !adminDb) {
-      return NextResponse.json(
-        { error: 'Service temporarily unavailable' },
-        { status: 503 }
-      );
-    }
+    // Firebase admin is lazily initialized, no need for check
     
     // Get and verify the auth token
     const authHeader = request.headers.get('Authorization');
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const decodedToken = await getAdminAuth().verifyIdToken(token);
     const userId = decodedToken.uid;
     
     console.log('✅ User authenticated:', userId);
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is already enrolled
     const enrollmentId = `${userId}_${body.courseId}`;
-    const enrollmentDoc = await adminDb.collection('enrollments').doc(enrollmentId).get();
+    const enrollmentDoc = await getAdminDb().collection('enrollments').doc(enrollmentId).get();
     
     if (enrollmentDoc.exists && enrollmentDoc.data()?.status === 'active') {
       return NextResponse.json(
@@ -99,7 +102,7 @@ export async function POST(request: NextRequest) {
     const affiliateCourse = request.cookies.get('affiliate_course')?.value;
 
     // Create payment document
-    const paymentRef = adminDb.collection('payments').doc();
+    const paymentRef = getAdminDb().collection('payments').doc();
     const paymentData = {
       id: paymentRef.id,
       userId,
@@ -158,7 +161,7 @@ export async function POST(request: NextRequest) {
       console.log('📌 Use ngrok for real-time webhook testing');
     }
 
-    const molliePayment = await mollieClient.payments.create(molliePaymentData);
+    const molliePayment = await getMollieClient().payments.create(molliePaymentData);
 
     console.log('📝 Mollie payment created:', {
       id: molliePayment.id,

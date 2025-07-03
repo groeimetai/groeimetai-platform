@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
+import { createMollieClient, MollieClient } from '@mollie/api-client';
 
-import { createMollieClient } from '@mollie/api-client';
+// Lazy initialize Mollie client
+let mollieClient: MollieClient | null = null;
 
-const mollieClient = createMollieClient({
-  apiKey: process.env.MOLLIE_API_KEY!,
-});
+function getMollieClient(): MollieClient {
+  if (!mollieClient) {
+    const apiKey = process.env.MOLLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error('MOLLIE_API_KEY is not configured');
+    }
+    mollieClient = createMollieClient({ apiKey });
+  }
+  return mollieClient;
+}
 
 export async function GET(
   request: NextRequest,
@@ -44,7 +53,7 @@ export async function GET(
       console.log('🔄 Checking payment status with Mollie for localhost...');
       
       try {
-        const molliePayment = await mollieClient.payments.get(paymentData.molliePaymentId);
+        const molliePayment = await getMollieClient().payments.get(paymentData.molliePaymentId);
         
         // Update local status if changed
         if (molliePayment.status !== paymentData.status) {

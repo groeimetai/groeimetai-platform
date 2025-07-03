@@ -4,17 +4,26 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createMollieClient } from '@mollie/api-client';
+import { createMollieClient, MollieClient } from '@mollie/api-client';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { processCourseSaleServer } from '@/services/revenueService.server';
 import { AffiliateService } from '@/services/affiliateService';
 import { Payment } from '@/types';
 import { referralService } from '@/services/referralService';
 
-// Initialize Mollie client (server-side only)
-const mollieClient = createMollieClient({
-  apiKey: process.env.MOLLIE_API_KEY!,
-});
+// Lazy initialize Mollie client
+let mollieClient: MollieClient | null = null;
+
+function getMollieClient(): MollieClient {
+  if (!mollieClient) {
+    const apiKey = process.env.MOLLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error('MOLLIE_API_KEY is not configured');
+    }
+    mollieClient = createMollieClient({ apiKey });
+  }
+  return mollieClient;
+}
 
 // Verify webhook signature (optional but recommended for production)
 function verifyWebhookSignature(request: NextRequest): boolean {
@@ -90,7 +99,7 @@ async function processPaymentWebhook(molliePaymentId: string): Promise<void> {
     console.log('Processing payment webhook for:', molliePaymentId);
 
     // Get payment from Mollie
-    const molliePayment = await mollieClient.payments.get(molliePaymentId);
+    const molliePayment = await getMollieClient().payments.get(molliePaymentId);
     
     // Find corresponding payment document
     const paymentsQuery = await getAdminDb()
