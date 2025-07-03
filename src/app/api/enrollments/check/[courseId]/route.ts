@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
 
 
@@ -15,14 +15,14 @@ export async function GET(
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const decodedToken = await getAdminAuth().verifyIdToken(token);
     const userId = decodedToken.uid;
 
     const { courseId } = params;
 
     // Check enrollment
     const enrollmentId = `${userId}_${courseId}`;
-    const enrollmentDoc = await adminDb.collection('enrollments').doc(enrollmentId).get();
+    const enrollmentDoc = await getAdminDb().collection('enrollments').doc(enrollmentId).get();
     
     const enrolled = enrollmentDoc.exists && enrollmentDoc.data()?.status === 'active';
 

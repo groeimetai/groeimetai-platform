@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 
 import { createMollieClient } from '@mollie/api-client';
 
@@ -19,13 +19,13 @@ export async function GET(
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const decodedToken = await getAdminAuth().verifyIdToken(token);
     const userId = decodedToken.uid;
 
     const { paymentId } = params;
 
     // Get payment document
-    const paymentDoc = await adminDb.collection('payments').doc(paymentId).get();
+    const paymentDoc = await getAdminDb().collection('payments').doc(paymentId).get();
     
     if (!paymentDoc.exists) {
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
@@ -48,7 +48,7 @@ export async function GET(
         
         // Update local status if changed
         if (molliePayment.status !== paymentData.status) {
-          await adminDb.collection('payments').doc(paymentId).update({
+          await getAdminDb().collection('payments').doc(paymentId).update({
             status: molliePayment.status,
             updatedAt: new Date(),
             ...(molliePayment.status === 'paid' && {
@@ -63,7 +63,7 @@ export async function GET(
           // If paid, create enrollment
           if (molliePayment.status === 'paid') {
             const enrollmentId = `${userId}_${paymentData.courseId}`;
-            await adminDb.collection('enrollments').doc(enrollmentId).set({
+            await getAdminDb().collection('enrollments').doc(enrollmentId).set({
               id: enrollmentId,
               userId,
               courseId: paymentData.courseId,

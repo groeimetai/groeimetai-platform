@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createMollieClient } from '@mollie/api-client';
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { processCourseSaleServer } from '@/services/revenueService.server';
 import { AffiliateService } from '@/services/affiliateService';
 import { Payment } from '@/types';
@@ -93,7 +93,7 @@ async function processPaymentWebhook(molliePaymentId: string): Promise<void> {
     const molliePayment = await mollieClient.payments.get(molliePaymentId);
     
     // Find corresponding payment document
-    const paymentsQuery = await adminDb
+    const paymentsQuery = await getAdminDb()
       .collection('payments')
       .where('molliePaymentId', '==', molliePaymentId)
       .limit(1)
@@ -132,7 +132,7 @@ async function processPaymentWebhook(molliePaymentId: string): Promise<void> {
       const enrollmentId = `${userId}_${courseId}`;
 
       // Create enrollment
-      await adminDb.collection('enrollments').doc(enrollmentId).set({
+      await getAdminDb().collection('enrollments').doc(enrollmentId).set({
         id: enrollmentId,
         userId,
         courseId,
@@ -198,7 +198,7 @@ async function processPaymentWebhook(molliePaymentId: string): Promise<void> {
         // Check if this is the user's first purchase for referral rewards
         try {
           // Check if user has any other completed payments
-          const previousPayments = await adminDb
+          const previousPayments = await getAdminDb()
             .collection('payments')
             .where('userId', '==', userId)
             .where('status', '==', 'paid')
@@ -226,7 +226,7 @@ async function processPaymentWebhook(molliePaymentId: string): Promise<void> {
     if (molliePayment.status === 'failed' || molliePayment.status === 'canceled') {
       // Update enrollment status if it exists
       const enrollmentId = `${paymentData.userId}_${paymentData.courseId}`;
-      const enrollmentRef = adminDb.collection('enrollments').doc(enrollmentId);
+      const enrollmentRef = getAdminDb().collection('enrollments').doc(enrollmentId);
       const enrollment = await enrollmentRef.get();
       
       if (enrollment.exists && enrollment.data()?.paymentId === paymentId) {

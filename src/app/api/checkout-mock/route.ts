@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const decodedToken = await getAdminAuth().verifyIdToken(token);
     const userId = decodedToken.uid;
 
     // Parse request body
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { courseId } = body;
 
     // Create a mock payment
-    const paymentRef = adminDb.collection('payments').doc();
+    const paymentRef = getAdminDb().collection('payments').doc();
     await paymentRef.set({
       id: paymentRef.id,
       userId,
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Create enrollment immediately
     const enrollmentId = `${userId}_${courseId}`;
-    await adminDb.collection('enrollments').doc(enrollmentId).set({
+    await getAdminDb().collection('enrollments').doc(enrollmentId).set({
       userId,
       courseId,
       status: 'active',
