@@ -58,6 +58,8 @@ const nextConfig = {
   experimental: {
     outputFileTracingRoot: undefined,
   },
+  // Increase static page generation timeout
+  staticPageGenerationTimeout: 120, // 120 seconds
   // Tijdelijk build errors negeren voor deployment
   typescript: {
     ignoreBuildErrors: true,

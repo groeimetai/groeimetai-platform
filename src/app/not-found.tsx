@@ -1,7 +1,15 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft, Home } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic';
 
 export default function NotFound() {
+  const router = useRouter();
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
       <div className="max-w-md w-full px-6 py-8 text-center">
@@ -32,7 +40,7 @@ export default function NotFound() {
           </Link>
 
           <button
-            onClick={() => window.history.back()}
+            onClick={() => router.back()}
             className="flex items-center justify-center gap-2 w-full px-6 py-3 text-blue-600 hover:text-blue-700 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />

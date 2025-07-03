@@ -64,12 +64,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
+    // Skip auth initialization during build or when auth is not available
+    if (typeof window === 'undefined' || process.env.BUILDING === 'true') {
       setLoading(false);
-    });
+      return;
+    }
+    
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        setUser(user);
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.warn('Auth initialization skipped:', error);
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
