@@ -6,14 +6,20 @@ import { getFirestore, Firestore } from 'firebase-admin/firestore';
 let app: App | undefined;
 let adminAuth: Auth | any;
 let adminDb: Firestore | any;
+let initialized = false;
 
 function initializeFirebaseAdmin() {
+  if (initialized) {
+    return;
+  }
+
   try {
     // Check if app already exists
     if (getApps().length > 0) {
       app = getApp();
       adminAuth = getAuth(app);
       adminDb = getFirestore(app);
+      initialized = true;
       return;
     }
 
@@ -28,6 +34,12 @@ function initializeFirebaseAdmin() {
     console.log('- FIREBASE_PRIVATE_KEY:', privateKey ? 'Set (length: ' + privateKey.length + ')' : 'Missing');
 
     if (!projectId || !clientEmail || !privateKey) {
+      // During build time, skip initialization
+      if (process.env.BUILDING === 'true' || (process.env.NODE_ENV === 'production' && !global.window)) {
+        console.log('⚠️  Skipping Firebase Admin SDK initialization during build');
+        return;
+      }
+
       // In development, return mock services to prevent crashes
       if (process.env.NODE_ENV === 'development') {
         console.warn('⚠️  Firebase Admin SDK not configured. Using mock services.');
@@ -57,6 +69,7 @@ function initializeFirebaseAdmin() {
           }),
         } as any;
         
+        initialized = true;
         return;
       }
       
@@ -74,6 +87,7 @@ function initializeFirebaseAdmin() {
 
     adminAuth = getAuth(app);
     adminDb = getFirestore(app);
+    initialized = true;
     
     console.log('✅ Firebase Admin SDK initialized successfully');
   } catch (error) {
@@ -82,9 +96,31 @@ function initializeFirebaseAdmin() {
   }
 }
 
-// Initialize on first import
-initializeFirebaseAdmin();
+// Lazy getters that initialize on first access
+export function getAdminAuth(): Auth {
+  if (!initialized) {
+    initializeFirebaseAdmin();
+  }
+  
+  if (!adminAuth) {
+    throw new Error('Firebase Admin Auth not initialized');
+  }
+  
+  return adminAuth;
+}
 
-// Export initialized services
+export function getAdminDb(): Firestore {
+  if (!initialized) {
+    initializeFirebaseAdmin();
+  }
+  
+  if (!adminDb) {
+    throw new Error('Firebase Admin Firestore not initialized');
+  }
+  
+  return adminDb;
+}
+
+// Export for backward compatibility but mark as deprecated
 export { adminAuth, adminDb };
 export default app;

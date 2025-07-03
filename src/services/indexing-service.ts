@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { db } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 
 export interface IndexingServiceConfig {
   contentPath: string;
@@ -226,8 +226,8 @@ export class CourseIndexingService {
     await this.indexingQueue.updateProgress(job.id.toString(), 80, 'Storing vectors');
 
     // Store in Firestore
-    const batch = db.batch();
-    const vectorsRef = db.collection('course_vectors');
+    const batch = getAdminDb().batch();
+    const vectorsRef = getAdminDb().collection('course_vectors');
 
     chunks.forEach((chunk, index) => {
       const docRef = vectorsRef.doc();
@@ -411,12 +411,12 @@ export class CourseIndexingService {
    * Delete vectors for a specific file
    */
   private async deleteFileVectors(filePath: string): Promise<void> {
-    const snapshot = await db
+    const snapshot = await getAdminDb()
       .collection('course_vectors')
       .where('filePath', '==', filePath)
       .get();
 
-    const batch = db.batch();
+    const batch = getAdminDb().batch();
     snapshot.docs.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
   }
@@ -425,7 +425,7 @@ export class CourseIndexingService {
    * Delete all vectors for a course
    */
   private async deleteAllCourseVectors(courseId: string): Promise<void> {
-    const snapshot = await db
+    const snapshot = await getAdminDb()
       .collection('course_vectors')
       .where('courseId', '==', courseId)
       .get();
@@ -433,7 +433,7 @@ export class CourseIndexingService {
     // Delete in batches of 500
     const batchSize = 500;
     for (let i = 0; i < snapshot.docs.length; i += batchSize) {
-      const batch = db.batch();
+      const batch = getAdminDb().batch();
       const batchDocs = snapshot.docs.slice(i, i + batchSize);
       batchDocs.forEach(doc => batch.delete(doc.ref));
       await batch.commit();

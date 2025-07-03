@@ -34,6 +34,8 @@ ENV NEXT_PUBLIC_CERTIFICATE_CONTRACT_POLYGON=0x9Ef945A0Bf892f239b0927758BE1a0334
 ENV NEXT_PUBLIC_PINATA_GATEWAY=https://gateway.pinata.cloud
 
 # Build the Next.js application
+# Skip Firebase Admin initialization during build
+ENV BUILDING=true
 RUN npm run build
 
 # Production stage

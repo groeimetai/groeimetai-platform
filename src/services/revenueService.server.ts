@@ -3,7 +3,7 @@
  * Server-side version using Firebase Admin SDK
  */
 
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { courses } from '@/lib/data/courses';
 import { 
   RevenueTransaction, 
@@ -49,7 +49,7 @@ async function getAuthorType(authorId: string): Promise<AuthorType> {
   }
   
   try {
-    const authorDoc = await adminDb.collection(COLLECTION_AUTHORS).doc(authorId).get();
+    const authorDoc = await getAdminDb().collection(COLLECTION_AUTHORS).doc(authorId).get();
     if (authorDoc.exists) {
       const author = authorDoc.data();
       return author?.type || 'new';
@@ -66,7 +66,7 @@ async function getAuthorType(authorId: string): Promise<AuthorType> {
  */
 async function validateAffiliateCode(affiliateCode: string): Promise<string | null> {
   try {
-    const affiliateQuery = await adminDb
+    const affiliateQuery = await getAdminDb()
       .collection('affiliate_links')
       .where('code', '==', affiliateCode)
       .where('isActive', '==', true)
@@ -159,10 +159,10 @@ export async function processCourseSaleServer(
     }
 
     // Use batch writes for atomic operations
-    const batch = adminDb.batch();
+    const batch = getAdminDb().batch();
 
     // Save revenue transaction
-    const revTransactionRef = adminDb
+    const revTransactionRef = getAdminDb()
       .collection(COLLECTION_REVENUE_TRANSACTIONS)
       .doc(transactionId);
     batch.set(revTransactionRef, revenueTransaction);
@@ -185,14 +185,14 @@ export async function processCourseSaleServer(
         createdAt: timestamp
       };
       
-      const affTransactionRef = adminDb
+      const affTransactionRef = getAdminDb()
         .collection(COLLECTION_AFFILIATE_TRANSACTIONS)
         .doc(affiliateTransactionId);
       batch.set(affTransactionRef, affiliateTransaction);
     }
 
     // Update author's available balance
-    const authorSettingsRef = adminDb
+    const authorSettingsRef = getAdminDb()
       .collection(COLLECTION_AUTHOR_REVENUE_SETTINGS)
       .doc(authorId);
     

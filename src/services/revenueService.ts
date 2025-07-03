@@ -19,7 +19,7 @@ import {
   startAfter
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { 
   RevenueShare, 
   AuthorType, 
