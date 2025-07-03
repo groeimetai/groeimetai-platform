@@ -116,8 +116,8 @@ Creates:
 #    - Add GCP_SA_KEY with the clipboard content
 #    - Add all other required secrets (see GITHUB_ACTIONS_SETUP.md)
 
-# 4. Push to main branch to trigger deployment
-git push origin main
+# 4. Push to master branch to trigger deployment
+git push origin master
 ```
 
 ### Deploy to Mumbai Testnet
