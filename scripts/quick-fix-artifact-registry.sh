@@ -10,7 +10,7 @@ echo "===================================="
 echo ""
 
 # Variables
-PROJECT_ID=${1:-groeimetai}
+PROJECT_ID=${1:-groeimetai-platform}
 REGION=${2:-europe-west1}
 ARTIFACT_REPO="groeimetai-docker"
 SERVICE_ACCOUNT_NAME="github-actions-deploy"

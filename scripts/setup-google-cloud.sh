@@ -20,9 +20,9 @@ echo ""
 echo "📋 Please provide the following information:"
 echo ""
 
-# Default to groeimetai if no input
-read -p "Enter your Google Cloud Project ID (default: groeimetai): " PROJECT_ID
-PROJECT_ID=${PROJECT_ID:-groeimetai}
+# Default to groeimetai-platform if no input
+read -p "Enter your Google Cloud Project ID (default: groeimetai-platform): " PROJECT_ID
+PROJECT_ID=${PROJECT_ID:-groeimetai-platform}
 
 read -p "Enter your preferred region (default: europe-west1): " REGION
 REGION=${REGION:-europe-west1}

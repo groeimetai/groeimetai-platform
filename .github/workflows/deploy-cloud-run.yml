@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'groeimetai' }}
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'groeimetai-platform' }}
   SERVICE_NAME: ${{ vars.SERVICE_NAME || 'groeimetai-platform' }}
   REGION: ${{ vars.REGION || 'europe-west1' }}
 
