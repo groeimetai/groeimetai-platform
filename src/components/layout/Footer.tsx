@@ -6,40 +6,48 @@ const footerSections = {
   company: {
     title: 'GroeimetAI',
     links: [
-      { name: 'Over ons', href: '/about' },
-      { name: 'Contact', href: '/contact' },
-      { name: 'Carrière', href: '/careers' },
-      { name: 'Privacy', href: '/privacy' },
-      { name: 'Algemene Voorwaarden', href: '/terms' },
+      { name: 'Dashboard', href: '/dashboard' },
+      { name: 'Cursussen', href: '/cursussen' },
+      // Commented out until pages are created
+      // { name: 'Over ons', href: '/about' },
+      // { name: 'Contact', href: '/contact' },
+      // { name: 'Carrière', href: '/careers' },
+      // { name: 'Privacy', href: '/privacy' },
+      // { name: 'Algemene Voorwaarden', href: '/terms' },
     ],
   },
   courses: {
-    title: 'Cursussen',
+    title: 'Populaire Cursussen',
     links: [
-      { name: 'AI Fundamentals', href: '/cursussen/ai-fundamentals' },
-      { name: 'Machine Learning', href: '/cursussen/machine-learning' },
-      { name: 'ChatGPT voor Professionals', href: '/cursussen/chatgpt-professionals' },
-      { name: 'AI Strategy', href: '/cursussen/ai-strategy' },
+      { name: 'ChatGPT & Gemini Masterclass', href: '/cursussen/chatgpt-gemini-masterclass' },
+      { name: 'AI Marketing Content', href: '/cursussen/ai-marketing-content' },
+      { name: 'Blockchain Fundamentals', href: '/cursussen/blockchain-fundamentals' },
+      { name: 'n8n & Make Basics', href: '/cursussen/n8n-make-basics' },
       { name: 'Alle cursussen', href: '/cursussen' },
     ],
   },
   support: {
-    title: 'Support',
+    title: 'Account',
     links: [
-      { name: 'Help Center', href: '/help' },
-      { name: 'Veelgestelde vragen', href: '/faq' },
-      { name: 'Community', href: '/community' },
-      { name: 'Technische ondersteuning', href: '/support' },
-      { name: 'Status', href: '/status' },
+      { name: 'Inloggen', href: '/login' },
+      { name: 'Registreren', href: '/register' },
+      { name: 'Blockchain Certificaten', href: '/blockchain' },
+      // Commented out until pages are created
+      // { name: 'Help Center', href: '/help' },
+      // { name: 'Veelgestelde vragen', href: '/faq' },
+      // { name: 'Community', href: '/community' },
+      // { name: 'Technische ondersteuning', href: '/support' },
+      // { name: 'Status', href: '/status' },
     ],
   },
 };
 
+// Social links commented out until actual profiles are available
 const socialLinks = [
-  { name: 'Facebook', href: '#', icon: Facebook },
-  { name: 'Twitter', href: '#', icon: Twitter },
-  { name: 'LinkedIn', href: '#', icon: Linkedin },
-  { name: 'YouTube', href: '#', icon: Youtube },
+  // { name: 'Facebook', href: 'https://facebook.com/groeimetai', icon: Facebook },
+  // { name: 'Twitter', href: 'https://twitter.com/groeimetai', icon: Twitter },
+  // { name: 'LinkedIn', href: 'https://linkedin.com/company/groeimetai', icon: Linkedin },
+  // { name: 'YouTube', href: 'https://youtube.com/@groeimetai', icon: Youtube },
 ];
 
 export function Footer() {
@@ -64,16 +72,17 @@ export function Footer() {
             <div className="space-y-2 text-sm text-gray-400">
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                <span>info@groeimetai.nl</span>
+                <span>info@groeimetai.io</span>
               </div>
-              <div className="flex items-center space-x-2">
+              {/* Phone and address commented out until available */}
+              {/* <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
                 <span>+31 20 123 4567</span>
               </div>
               <div className="flex items-center space-x-2">
                 <MapPin className="w-4 h-4" />
                 <span>Amsterdam, Nederland</span>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -127,23 +136,25 @@ export function Footer() {
               © {currentYear} GroeimetAI. Alle rechten voorbehouden.
             </div>
 
-            {/* Social Links */}
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-400 text-sm mr-2">Volg ons:</span>
-              {socialLinks.map((social) => {
-                const Icon = social.icon;
-                return (
-                  <Link
-                    key={social.name}
-                    href={social.href}
-                    className="text-gray-400 hover:text-white transition-colors"
-                    aria-label={social.name}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </Link>
-                );
-              })}
-            </div>
+            {/* Social Links - Hidden until social profiles are available */}
+            {socialLinks.length > 0 && (
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-400 text-sm mr-2">Volg ons:</span>
+                {socialLinks.map((social) => {
+                  const Icon = social.icon;
+                  return (
+                    <Link
+                      key={social.name}
+                      href={social.href}
+                      className="text-gray-400 hover:text-white transition-colors"
+                      aria-label={social.name}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Language & Region */}
             <div className="flex items-center space-x-4 text-sm text-gray-400">
