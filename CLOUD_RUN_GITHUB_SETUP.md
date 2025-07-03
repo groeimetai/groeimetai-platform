@@ -49,6 +49,20 @@ echo -n "your-pinata-secret-key" | gcloud secrets create pinata-secret-api-key -
 
 ## Stap 2: Cloud Run Service aanmaken via Console
 
+### ⚠️ BELANGRIJK: Build Substitutions vs Environment Variables
+
+**Build Substitutions** (in Cloud Build trigger) zijn voor **build-time** variabelen:
+- Worden gebruikt tijdens `docker build` en `npm run build`
+- Alle `NEXT_PUBLIC_*` variabelen moeten hier
+- Firebase configuratie moet hier voor de build
+
+**Environment Variables** (in Cloud Run service) zijn voor **runtime** variabelen:
+- Worden gebruikt wanneer de app draait
+- Server-only secrets zoals `FIREBASE_PRIVATE_KEY`
+- Database URLs, API keys, etc.
+
+### Stappen:
+
 1. **Ga naar Cloud Run Console**
    ```
    https://console.cloud.google.com/run
@@ -67,16 +81,23 @@ echo -n "your-pinata-secret-key" | gcloud secrets create pinata-secret-api-key -
    - Build Type: **Dockerfile (with optional cloudbuild.yaml)**
    - Source location: `/` (root directory)
    
-   **BELANGRIJK**: Klik op "SHOW ADVANCED SETTINGS" en voeg deze Build Substitutions toe:
-   ```
-   _NEXT_PUBLIC_FIREBASE_API_KEY = your-firebase-api-key
-   _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = your-auth-domain.firebaseapp.com
-   _NEXT_PUBLIC_FIREBASE_PROJECT_ID = your-project-id
-   _NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = your-bucket.appspot.com
-   _NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = your-sender-id
-   _NEXT_PUBLIC_FIREBASE_APP_ID = your-app-id
-   _NEXT_PUBLIC_CERTIFICATE_CONTRACT_POLYGON = 0x... (je contract address)
-   ```
+   **BELANGRIJK - Dit moet je ZEKER doen!**
+   
+   Klik op "SHOW ADVANCED SETTINGS" en scroll naar "Substitution variables".
+   
+   **Voeg deze variabelen EXACT zo toe (met underscore _ prefix):**
+   
+   | Variable name | Variable value |
+   |--------------|----------------|
+   | `_NEXT_PUBLIC_FIREBASE_API_KEY` | `your-firebase-api-key` |
+   | `_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `your-auth-domain.firebaseapp.com` |
+   | `_NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `your-project-id` |
+   | `_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `your-bucket.appspot.com` |
+   | `_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `your-sender-id` |
+   | `_NEXT_PUBLIC_FIREBASE_APP_ID` | `your-app-id` |
+   | `_NEXT_PUBLIC_CERTIFICATE_CONTRACT_POLYGON` | `0x9Ef945A0Bf892f239b0927758BE1a03346efe86E` |
+   
+   ⚠️ **NIET in Environment Variables van Cloud Run zetten, maar in Build Substitutions!**
 
 5. **Service configuratie**
    - Service name: `groeimetai-platform`
