@@ -1,21 +1,11 @@
-import type { Lesson } from '$lib/types/course';
+import type { Lesson } from '@/lib/data/courses';
 
-export const lesson: Lesson = {
-  id: 'claude-flow-prod-deployment',
-  title: 'Production Claude Flow Deployment',
-  description: 'Deploy Claude Flow AI swarms to production with Kubernetes, monitoring, and cost optimization',
-  duration: 90,
-  objectives: [
-    'Configure Kubernetes for Claude Flow agent orchestration',
-    'Implement load balancing for AI agent workloads',
-    'Set up Prometheus monitoring for swarm metrics',
-    'Optimize costs in production AI deployments'
-  ],
-  sections: [
-    {
-      id: 'kubernetes-architecture',
-      title: 'Kubernetes Architecture for AI Swarms',
-      content: `# Kubernetes Architecture for Claude Flow
+// Section content to be combined
+const sections = [
+  {
+    id: 'kubernetes-architecture',
+    title: 'Kubernetes Architecture for AI Swarms',
+    content: `# Kubernetes Architecture for Claude Flow
 
 ## Container Structure
 
@@ -101,13 +91,12 @@ services:
       - CODE_EXECUTION_TIMEOUT=300000
     volumes:
       - ./workspace:/workspace
-\`\`\``,
-      exercises: []
-    },
-    {
-      id: 'k8s-deployment',
-      title: 'Kubernetes Deployment Configuration',
-      content: `# Kubernetes Deployment for Claude Flow
+\`\`\``
+  },
+  {
+    id: 'k8s-deployment',
+    title: 'Kubernetes Deployment Configuration',
+    content: `# Kubernetes Deployment for Claude Flow
 
 ## Namespace and RBAC Setup
 
@@ -306,33 +295,12 @@ spec:
       - type: Percent
         value: 10
         periodSeconds: 60
-\`\`\``,
-      exercises: [
-        {
-          id: 'k8s-setup',
-          title: 'Kubernetes Setup Exercise',
-          description: 'Deploy a basic Claude Flow setup to Kubernetes',
-          type: 'coding',
-          difficulty: 'intermediate',
-          estimatedTime: 30,
-          instructions: [
-            'Create namespace and RBAC configurations',
-            'Deploy orchestrator with 2 replicas',
-            'Configure HPA for agent pool',
-            'Verify all pods are running'
-          ],
-          hints: [
-            'Check pod logs with kubectl logs',
-            'Use kubectl describe for debugging',
-            'Ensure secrets are created first'
-          ]
-        }
-      ]
-    },
-    {
-      id: 'load-balancing',
-      title: 'Load Balancing for Agent Workloads',
-      content: `# Load Balancing AI Agent Workloads
+\`\`\``
+  },
+  {
+    id: 'load-balancing',
+    title: 'Load Balancing for Agent Workloads',
+    content: `# Load Balancing AI Agent Workloads
 
 ## Service Configuration
 
@@ -519,13 +487,12 @@ export class AgentLoadBalancer {
     return Math.min(complexity, 1.0);
   }
 }
-\`\`\``,
-      exercises: []
-    },
-    {
-      id: 'prometheus-monitoring',
-      title: 'Prometheus Monitoring Setup',
-      content: `# Monitoring Claude Flow with Prometheus
+\`\`\``
+  },
+  {
+    id: 'prometheus-monitoring',
+    title: 'Prometheus Monitoring Setup',
+    content: `# Monitoring Claude Flow with Prometheus
 
 ## Metrics Implementation
 
@@ -747,13 +714,12 @@ spec:
     ]
   }
 }
-\`\`\``,
-      exercises: []
-    },
-    {
-      id: 'cost-optimization',
-      title: 'Cost Optimization Strategies',
-      content: `# Cost Optimization for AI Deployments
+\`\`\``
+  },
+  {
+    id: 'cost-optimization',
+    title: 'Cost Optimization Strategies',
+    content: `# Cost Optimization for AI Deployments
 
 ## Resource Optimization
 
@@ -937,27 +903,129 @@ export class BudgetController {
     await this.scaleDeployment('analyzer-pool', 1);
   }
 }
-\`\`\``,
-      exercises: [
-        {
-          id: 'cost-optimization',
-          title: 'Implement Cost Controls',
-          description: 'Set up cost optimization for your deployment',
-          type: 'project',
-          difficulty: 'advanced',
-          estimatedTime: 45,
-          instructions: [
-            'Configure spot instances for batch workloads',
-            'Implement budget monitoring',
-            'Set up automatic scaling based on cost',
-            'Create cost allocation tags'
-          ],
-          hints: [
-            'Use node affinity for spot instances',
-            'Implement graceful shutdown for spot termination',
-            'Monitor spot instance interruption rates'
-          ]
-        }
+\`\`\``
+  }
+];
+
+// Combine all section contents into a single content string
+const combinedContent = sections.map(section => section.content).join('\n\n---\n\n');
+
+export const lesson: Lesson = {
+  id: 'claude-flow-prod-deployment',
+  title: 'Production Claude Flow Deployment',
+  duration: '90 minuten',
+  content: combinedContent,
+  codeExamples: [
+    {
+      id: 'k8s-deployment-example',
+      title: 'Complete Kubernetes Deployment',
+      language: 'yaml',
+      code: `# Complete deployment for Claude Flow
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-flow-orchestrator
+  namespace: claude-flow
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: claude-flow
+      component: orchestrator
+  template:
+    metadata:
+      labels:
+        app: claude-flow
+        component: orchestrator
+    spec:
+      containers:
+      - name: orchestrator
+        image: claude-flow:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: production
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"`,
+      explanation: 'Complete deployment configuration for Claude Flow orchestrator with resource limits and environment configuration'
+    },
+    {
+      id: 'monitoring-setup',
+      title: 'Prometheus Monitoring Setup',
+      language: 'typescript',
+      code: `import { Counter, Histogram, register } from 'prom-client';
+
+const httpRequestDuration = new Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10]
+});
+
+const agentTaskCounter = new Counter({
+  name: 'agent_tasks_total',
+  help: 'Total number of agent tasks',
+  labelNames: ['agent_type', 'status']
+});
+
+// Middleware to track HTTP metrics
+export const metricsMiddleware = (req, res, next) => {
+  const timer = httpRequestDuration.startTimer();
+  
+  res.on('finish', () => {
+    timer({ 
+      method: req.method, 
+      route: req.route?.path || 'unknown',
+      status_code: res.statusCode 
+    });
+  });
+  
+  next();
+};`,
+      explanation: 'Basic Prometheus metrics setup for monitoring Claude Flow agents and HTTP requests'
+    }
+  ],
+  assignments: [
+    {
+      id: 'k8s-setup',
+      title: 'Kubernetes Setup Exercise',
+      description: 'Deploy a basic Claude Flow setup to Kubernetes',
+      type: 'project',
+      difficulty: 'hard',
+      checklist: [
+        'Create namespace and RBAC configurations',
+        'Deploy orchestrator with 2 replicas',
+        'Configure HPA for agent pool',
+        'Verify all pods are running'
+      ],
+      hints: [
+        'Check pod logs with kubectl logs',
+        'Use kubectl describe for debugging',
+        'Ensure secrets are created first'
+      ]
+    },
+    {
+      id: 'cost-optimization',
+      title: 'Implement Cost Controls',
+      description: 'Set up cost optimization for your deployment',
+      type: 'project',
+      difficulty: 'hard',
+      checklist: [
+        'Configure spot instances for batch workloads',
+        'Implement budget monitoring',
+        'Set up automatic scaling based on cost',
+        'Create cost allocation tags'
+      ],
+      hints: [
+        'Use node affinity for spot instances',
+        'Implement graceful shutdown for spot termination',
+        'Monitor spot instance interruption rates'
       ]
     }
   ],

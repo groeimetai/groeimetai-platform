@@ -12,6 +12,11 @@ interface MarkdownViewerProps {
 }
 
 export function MarkdownViewer({ content, className = '' }: MarkdownViewerProps) {
+  // Handle undefined or null content
+  if (!content) {
+    return <div className={`${className} text-gray-500`}>No content available</div>
+  }
+
   // Pre-process content to escape problematic patterns
   const processedContent = content
     // Preserve N8N/Make.com template expressions in code blocks
