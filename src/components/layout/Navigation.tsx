@@ -34,8 +34,13 @@ export function Navigation() {
   useEffect(() => {
     const checkInstructorStatus = async () => {
       if (user) {
-        const instructorStatus = await isApprovedInstructor(user.uid);
-        setIsInstructor(instructorStatus);
+        try {
+          const instructorStatus = await isApprovedInstructor(user.uid);
+          setIsInstructor(instructorStatus);
+        } catch (error) {
+          console.warn('Could not check instructor status:', error);
+          setIsInstructor(false);
+        }
       }
     };
     checkInstructorStatus();
