@@ -174,7 +174,7 @@ export default function DashboardPage() {
             {/* Progress Overview */}
             <ProgressOverviewWidget enrollments={enrollments} />
 
-            <EnrolledCoursesWidget enrollments={enrollments} />
+            <EnrolledCoursesWidget enrollments={enrollments} certificates={certificates} />
 
             {/* Achievements */}
             <AchievementsWidget certificates={certificates} />

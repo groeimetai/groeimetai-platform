@@ -6,7 +6,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useVideoProgress } from '@/hooks/useVideoProgress'
 import { useSearchParams } from 'next/navigation'
-import { BookOpen, Code, PlayCircle } from 'lucide-react'
+import { BookOpen, Code, PlayCircle, Award } from 'lucide-react'
 import { getCourseWithContent } from '@/lib/data/course-loader';
 import { CourseSidebar } from './CourseSidebar'
 import { LessonViewer } from './LessonViewer'
@@ -383,6 +383,15 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
               )}
             </div>
             <div className="flex gap-2">
+              {certificate && (
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(`/certificate/verify/${certificate.id}`, '_blank')}
+                >
+                  <Award className="w-4 h-4 mr-2" />
+                  Bekijk Certificaat
+                </Button>
+              )}
               {getNextLesson() && (
                 <Button
                   onClick={handleNextLesson}
