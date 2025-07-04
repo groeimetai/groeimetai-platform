@@ -537,6 +537,11 @@ export class CertificateService {
    */
   static async getUserCertificates(userId: string): Promise<Certificate[]> {
     try {
+      // Only run in browser
+      if (typeof window === 'undefined') {
+        return [];
+      }
+      
       const q = query(
         collection(getDb(), 'certificates'),
         where('userId', '==', userId),

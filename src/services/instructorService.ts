@@ -101,6 +101,11 @@ export const instructorService = {
    */
   async isApprovedInstructor(userId: string) {
     try {
+      // Only check if in browser
+      if (typeof window === 'undefined') {
+        return false;
+      }
+      
       const db = getDb();
       const instructorDoc = await getDoc(doc(db, 'instructors', userId))
       if (!instructorDoc.exists()) return false

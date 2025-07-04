@@ -85,6 +85,11 @@ export class EnrollmentService {
    */
   static async getUserEnrollments(userId: string): Promise<Enrollment[]> {
     try {
+      // Only run in browser
+      if (typeof window === 'undefined') {
+        return [];
+      }
+      
       const q = query(
         collection(getDb(), 'enrollments'),
         where('userId', '==', userId),
