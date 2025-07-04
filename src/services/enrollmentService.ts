@@ -9,10 +9,12 @@ import {
   query,
   where,
   orderBy,
+  Firestore,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { Enrollment, Progress } from '@/types'
 import { objectiveService } from './objectiveService'
+
+import { getDb } from '@/lib/firebase/db-getter';
 
 export class EnrollmentService {
   /**
@@ -34,7 +36,7 @@ export class EnrollmentService {
         enrolledAt: new Date(),
       }
 
-      const docRef = await addDoc(collection(db, 'enrollments'), enrollment)
+      const docRef = await addDoc(collection(getDb(), 'enrollments'), enrollment)
       
       // Update objectives related to this course
       await objectiveService.updateObjectiveFromCourseProgress(
@@ -57,7 +59,7 @@ export class EnrollmentService {
   static async getUserEnrollment(userId: string, courseId: string): Promise<Enrollment | null> {
     try {
       const q = query(
-        collection(db, 'enrollments'),
+        collection(getDb(), 'enrollments'),
         where('userId', '==', userId),
         where('courseId', '==', courseId)
       )
@@ -85,7 +87,7 @@ export class EnrollmentService {
   static async getUserEnrollments(userId: string): Promise<Enrollment[]> {
     try {
       const q = query(
-        collection(db, 'enrollments'),
+        collection(getDb(), 'enrollments'),
         where('userId', '==', userId),
         orderBy('enrolledAt', 'desc')
       )
@@ -93,7 +95,7 @@ export class EnrollmentService {
       
       const enrollments = await Promise.all(querySnapshot.docs.map(async (enrollmentDoc) => {
         const enrollmentData = enrollmentDoc.data() as Omit<Enrollment, 'id'>;
-        const courseDocRef = doc(db, 'courses', enrollmentData.courseId);
+        const courseDocRef = doc(getDb(), 'courses', enrollmentData.courseId);
         const courseDoc = await getDoc(courseDocRef);
         const courseData = courseDoc.exists() ? courseDoc.data() : null;
         
@@ -119,7 +121,7 @@ export class EnrollmentService {
   static async getCourseEnrollments(courseId: string): Promise<Enrollment[]> {
     try {
       const q = query(
-        collection(db, 'enrollments'),
+        collection(getDb(), 'enrollments'),
         where('courseId', '==', courseId),
         orderBy('enrolledAt', 'desc')
       )
@@ -140,7 +142,7 @@ export class EnrollmentService {
    */
   static async markLessonCompleted(enrollmentId: string, lessonId: string): Promise<void> {
     try {
-      const enrollmentRef = doc(db, 'enrollments', enrollmentId)
+      const enrollmentRef = doc(getDb(), 'enrollments', enrollmentId)
       const enrollmentDoc = await getDoc(enrollmentRef)
       
       if (!enrollmentDoc.exists()) {
@@ -185,7 +187,7 @@ export class EnrollmentService {
     currentLessonId?: string
   ): Promise<void> {
     try {
-      const enrollmentRef = doc(db, 'enrollments', enrollmentId)
+      const enrollmentRef = doc(getDb(), 'enrollments', enrollmentId)
       const updateData: Partial<Enrollment> = {
         progress: Math.max(0, Math.min(100, progress)), // Ensure progress is between 0-100
       }

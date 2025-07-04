@@ -11,12 +11,15 @@ import {
   serverTimestamp,
   increment,
   Timestamp,
+  Firestore,
+  FirebaseStorage,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import QRCode from 'qrcode'
 import { generateCertificatePDF } from './certificatePDFGenerator'
 import crypto from 'crypto'
-import { db, storage } from '@/lib/firebase'
+
+import { getDb, getStorage } from '@/lib/firebase/db-getter';
 import { Certificate, User, Course, AssessmentAttempt, Enrollment } from '@/types'
 import { getCourseById } from '@/lib/data/courses'
 import { BlockchainCertificate, CertificateVerification } from '@/types/certificate'
@@ -442,7 +445,7 @@ export class CertificateService {
       }
 
       // Save certificate to Firestore
-      const docRef = await addDoc(collection(db, 'certificates'), certificateData)
+      const docRef = await addDoc(collection(getDb(), 'certificates'), certificateData)
       
       // Generate PDF certificate and upload to storage
       const pdfUrl = await this.generateCertificatePDF(certificateId, certificateData)
@@ -452,7 +455,7 @@ export class CertificateService {
       const linkedinUrl = `${CERTIFICATE_CONFIG.linkedinShareUrl}${encodeURIComponent(shareUrl)}`
       
       // Update certificate with URLs
-      await updateDoc(doc(db, 'certificates', docRef.id), {
+      await updateDoc(doc(getDb(), 'certificates', docRef.id), {
         certificateUrl: pdfUrl,
         linkedinShareUrl: linkedinUrl,
         updatedAt: serverTimestamp(),
@@ -518,7 +521,7 @@ export class CertificateService {
    */
   static async getCertificateById(certificateId: string): Promise<Certificate | null> {
     try {
-      const certificateDoc = await getDoc(doc(db, 'certificates', certificateId))
+      const certificateDoc = await getDoc(doc(getDb(), 'certificates', certificateId))
       if (!certificateDoc.exists()) return null
 
       return {
@@ -537,7 +540,7 @@ export class CertificateService {
   static async getUserCertificates(userId: string): Promise<Certificate[]> {
     try {
       const q = query(
-        collection(db, 'certificates'),
+        collection(getDb(), 'certificates'),
         where('userId', '==', userId),
         where('isValid', '==', true),
         orderBy('createdAt', 'desc')
@@ -560,7 +563,7 @@ export class CertificateService {
   static async getUserCourseCertificate(userId: string, courseId: string): Promise<Certificate | null> {
     try {
       const q = query(
-        collection(db, 'certificates'),
+        collection(getDb(), 'certificates'),
         where('userId', '==', userId),
         where('courseId', '==', courseId),
         where('isValid', '==', true)
@@ -650,7 +653,7 @@ export class CertificateService {
       }
 
       // Update verification statistics
-      await updateDoc(doc(db, 'certificates', certificateId), {
+      await updateDoc(doc(getDb(), 'certificates', certificateId), {
         'stats.scanCount': increment(1),
         'stats.lastScannedAt': serverTimestamp(),
       })
@@ -685,7 +688,7 @@ export class CertificateService {
    */
   static async revokeCertificate(certificateId: string): Promise<void> {
     try {
-      const certificateRef = doc(db, 'certificates', certificateId)
+      const certificateRef = doc(getDb(), 'certificates', certificateId)
       await updateDoc(certificateRef, {
         isValid: false,
       })
@@ -724,7 +727,7 @@ export class CertificateService {
       const pdfBlob = await generateCertificatePDF(certificateData)
       
       // Upload to Firebase Storage
-      const storageRef = ref(storage, `certificates/${certificateId}.pdf`)
+      const storageRef = ref(getStorage(), `certificates/${certificateId}.pdf`)
       await uploadBytes(storageRef, pdfBlob, {
         contentType: 'application/pdf',
         customMetadata: {
@@ -749,7 +752,7 @@ export class CertificateService {
    */
   private static async logCertificateEvent(event: string, data: any): Promise<void> {
     try {
-      await addDoc(collection(db, 'certificate_logs'), {
+      await addDoc(collection(getDb(), 'certificate_logs'), {
         event,
         data,
         timestamp: serverTimestamp(),
@@ -801,13 +804,13 @@ export class CertificateService {
   }> {
     try {
       // Get all certificates
-      const allCertificatesQuery = query(collection(db, 'certificates'))
+      const allCertificatesQuery = query(collection(getDb(), 'certificates'))
       const allCertificatesSnapshot = await getDocs(allCertificatesQuery)
       const totalCertificates = allCertificatesSnapshot.size
 
       // Get valid certificates
       const validCertificatesQuery = query(
-        collection(db, 'certificates'),
+        collection(getDb(), 'certificates'),
         where('isValid', '==', true)
       )
       const validCertificatesSnapshot = await getDocs(validCertificatesQuery)
@@ -1066,7 +1069,7 @@ export class CertificateService {
           })
           
           // Update certificate with queue ID
-          await updateDoc(doc(db, 'certificates', certificateId), {
+          await updateDoc(doc(getDb(), 'certificates', certificateId), {
             blockchainQueueId: queueId,
             updatedAt: serverTimestamp(),
           })
@@ -1097,7 +1100,7 @@ export class CertificateService {
           
           if (mintResult.success && mintResult.blockchainCertificate) {
             // Update certificate in database with blockchain data
-            await updateDoc(doc(db, 'certificates', certificateId), {
+            await updateDoc(doc(getDb(), 'certificates', certificateId), {
               blockchain: mintResult.blockchainCertificate,
               updatedAt: serverTimestamp(),
             })
@@ -1127,7 +1130,7 @@ export class CertificateService {
           })
           
           // Update certificate with queue ID
-          await updateDoc(doc(db, 'certificates', certificateId), {
+          await updateDoc(doc(getDb(), 'certificates', certificateId), {
             blockchainQueueId: queueId,
             updatedAt: serverTimestamp(),
           })
@@ -1177,7 +1180,7 @@ export class CertificateService {
         if (queueItem) {
           if (queueItem.status === 'completed' && queueItem.blockchainData) {
             // Update certificate with blockchain data if not already done
-            await updateDoc(doc(db, 'certificates', certificateId), {
+            await updateDoc(doc(getDb(), 'certificates', certificateId), {
               blockchain: queueItem.blockchainData,
               updatedAt: serverTimestamp(),
             })

@@ -13,21 +13,7 @@ import {
   Firestore
 } from 'firebase/firestore'
 
-// Lazy initialization of Firebase
-let dbInstance: Firestore | null = null;
-
-function getDb(): Firestore {
-  if (!dbInstance) {
-    try {
-      const { db } = require('@/lib/firebase');
-      dbInstance = db;
-    } catch (error) {
-      console.warn('Firebase not initialized:', error);
-      throw new Error('Firebase services not available');
-    }
-  }
-  return dbInstance;
-}
+import { getDb } from '@/lib/firebase/db-getter';
 
 export interface InstructorApplication {
   userId: string
