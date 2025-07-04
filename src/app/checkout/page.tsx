@@ -121,6 +121,20 @@ function CheckoutContent() {
 
       console.log('API Response:', data);
       
+      if (!response.ok) {
+        console.error('Payment failed:', data);
+        
+        // Check for specific error messages
+        if (data.error === 'Payment creation failed' && data.details) {
+          if (data.details.includes('MOLLIE_API_KEY')) {
+            throw new Error('Betalingssysteem is niet correct geconfigureerd. Neem contact op met support.');
+          }
+          throw new Error(data.details);
+        }
+        
+        throw new Error(data.error || 'Betaling mislukt');
+      }
+      
       if (data.success && data.checkoutUrl) {
         console.log('Redirecting to Mollie:', data.checkoutUrl);
         // Add a small delay to ensure console logs are visible
@@ -164,9 +178,16 @@ function CheckoutContent() {
       }
     } catch (error) {
       console.error('Checkout error:', error);
+      
+      let errorMessage = 'Er is een fout opgetreden bij het starten van de betaling';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: 'Fout',
-        description: 'Er is een fout opgetreden bij het starten van de betaling',
+        title: 'Betaling mislukt',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {

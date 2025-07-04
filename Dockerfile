@@ -84,6 +84,7 @@ EXPOSE 8080
 # Set environment variables
 ENV PORT 8080
 ENV NODE_ENV production
+ENV NEXT_PUBLIC_APP_URL=https://groeimetai-platform-1031990594888.europe-west1.run.app
 
 # Set Firebase and other public environment variables
 ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY

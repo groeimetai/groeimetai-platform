@@ -217,10 +217,22 @@ export async function POST(request: NextRequest) {
     
     // Return specific error messages for debugging
     if (error instanceof Error) {
+      // Check for specific errors
+      if (error.message.includes('MOLLIE_API_KEY')) {
+        console.error('⚠️ Mollie API key not configured');
+        return NextResponse.json(
+          { 
+            error: 'Payment system not configured',
+            details: 'MOLLIE_API_KEY is not set in environment variables'
+          },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
         { 
           error: 'Payment creation failed',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+          details: error.message
         },
         { status: 500 }
       );
