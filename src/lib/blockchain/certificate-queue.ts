@@ -12,7 +12,7 @@ import {
   serverTimestamp, 
   Timestamp 
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { getDb } from '@/lib/firebase/db-getter'
 import { getBlockchainService } from '@/services/blockchainService'
 import { BlockchainCertificate } from '@/types/certificate'
 
@@ -116,7 +116,7 @@ export class CertificateQueue {
         priority: params.priority || 0,
       }
       
-      await setDoc(doc(db, 'certificate_queue', queueId), {
+      await setDoc(doc(getDb(), 'certificate_queue', queueId), {
         ...queueItem,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -146,7 +146,7 @@ export class CertificateQueue {
       
       // Calculate average processing time
       const completedQuery = query(
-        collection(db, 'certificate_queue'),
+        collection(getDb(), 'certificate_queue'),
         where('status', '==', 'completed'),
         orderBy('updatedAt', 'desc'),
         limit(100)
@@ -196,7 +196,7 @@ export class CertificateQueue {
       
       // Get next batch of pending certificates
       const pendingQuery = query(
-        collection(db, 'certificate_queue'),
+        collection(getDb(), 'certificate_queue'),
         where('status', '==', 'pending'),
         orderBy('priority', 'desc'),
         orderBy('createdAt', 'asc'),
@@ -228,7 +228,7 @@ export class CertificateQueue {
     
     try {
       // Update status to processing
-      await updateDoc(doc(db, 'certificate_queue', queueId), {
+      await updateDoc(doc(getDb(), 'certificate_queue', queueId), {
         status: 'processing',
         attempts: queueItem.attempts + 1,
         lastAttemptAt: serverTimestamp(),
@@ -258,14 +258,14 @@ export class CertificateQueue {
       
       if (mintResult.success && mintResult.blockchainCertificate) {
         // Update queue item as completed
-        await updateDoc(doc(db, 'certificate_queue', queueId), {
+        await updateDoc(doc(getDb(), 'certificate_queue', queueId), {
           status: 'completed',
           blockchainData: mintResult.blockchainCertificate,
           updatedAt: serverTimestamp(),
         })
         
         // Update original certificate with blockchain data
-        await updateDoc(doc(db, 'certificates', queueItem.certificateId), {
+        await updateDoc(doc(getDb(), 'certificates', queueItem.certificateId), {
           blockchain: mintResult.blockchainCertificate,
           updatedAt: serverTimestamp(),
         })
@@ -289,7 +289,7 @@ export class CertificateQueue {
       // Update queue item with error
       const isLastAttempt = queueItem.attempts + 1 >= this.config.maxRetries
       
-      await updateDoc(doc(db, 'certificate_queue', queueId), {
+      await updateDoc(doc(getDb(), 'certificate_queue', queueId), {
         status: isLastAttempt ? 'failed' : 'pending',
         error: error.message,
         nextRetryAt: isLastAttempt ? null : nextRetryAt,
@@ -319,7 +319,7 @@ export class CertificateQueue {
       if (queueIds && queueIds.length > 0) {
         // Retry specific certificates
         for (const queueId of queueIds) {
-          await updateDoc(doc(db, 'certificate_queue', queueId), {
+          await updateDoc(doc(getDb(), 'certificate_queue', queueId), {
             status: 'pending',
             attempts: 0,
             error: null,
@@ -330,7 +330,7 @@ export class CertificateQueue {
       } else {
         // Retry all failed certificates
         failedQuery = query(
-          collection(db, 'certificate_queue'),
+          collection(getDb(), 'certificate_queue'),
           where('status', '==', 'failed')
         )
         const failedDocs = await getDocs(failedQuery)
@@ -365,7 +365,7 @@ export class CertificateQueue {
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
       
       const oldItemsQuery = query(
-        collection(db, 'certificate_queue'),
+        collection(getDb(), 'certificate_queue'),
         where('status', 'in', ['completed', 'failed']),
         where('updatedAt', '<', cutoffDate)
       )
@@ -421,7 +421,7 @@ export class CertificateQueue {
    */
   private async countByStatus(status: QueuedCertificate['status']): Promise<number> {
     const statusQuery = query(
-      collection(db, 'certificate_queue'),
+      collection(getDb(), 'certificate_queue'),
       where('status', '==', status)
     )
     const snapshot = await getDocs(statusQuery)
@@ -433,7 +433,7 @@ export class CertificateQueue {
    */
   private async logQueueEvent(event: string, data: any): Promise<void> {
     try {
-      await setDoc(doc(collection(db, 'certificate_queue_logs')), {
+      await setDoc(doc(collection(getDb(), 'certificate_queue_logs')), {
         event,
         data,
         timestamp: serverTimestamp(),
@@ -449,7 +449,7 @@ export class CertificateQueue {
    */
   async getQueueItem(queueId: string): Promise<QueuedCertificate | null> {
     try {
-      const docSnap = await getDoc(doc(db, 'certificate_queue', queueId))
+      const docSnap = await getDoc(doc(getDb(), 'certificate_queue', queueId))
       
       if (!docSnap.exists()) {
         return null
@@ -468,7 +468,7 @@ export class CertificateQueue {
   async getCertificateQueueItems(certificateId: string): Promise<QueuedCertificate[]> {
     try {
       const itemsQuery = query(
-        collection(db, 'certificate_queue'),
+        collection(getDb(), 'certificate_queue'),
         where('certificateId', '==', certificateId),
         orderBy('createdAt', 'desc')
       )
@@ -491,7 +491,7 @@ export class CertificateQueue {
       hourAgo.setHours(hourAgo.getHours() - 1)
       
       const recentQuery = query(
-        collection(db, 'certificate_queue'),
+        collection(getDb(), 'certificate_queue'),
         where('status', '==', 'completed'),
         where('updatedAt', '>', hourAgo)
       )
