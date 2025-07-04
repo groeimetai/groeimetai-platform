@@ -237,7 +237,7 @@ export class EnrollmentService {
 
       // Get total lessons count for the course
       const lessonsQuery = query(
-        collection(db, 'lessons'),
+        collection(getDb(), 'lessons'),
         where('courseId', '==', courseId)
       )
       const lessonsSnapshot = await getDocs(lessonsQuery)
@@ -270,7 +270,7 @@ export class EnrollmentService {
         throw new Error('User is not enrolled in this course')
       }
 
-      await updateDoc(doc(db, 'enrollments', enrollment.id), {
+      await updateDoc(doc(getDb(), 'enrollments', enrollment.id), {
         progress: 100,
         completedAt: new Date(),
       })
@@ -311,7 +311,7 @@ export class EnrollmentService {
         throw new Error('User is not enrolled in this course')
       }
 
-      await deleteDoc(doc(db, 'enrollments', enrollment.id))
+      await deleteDoc(doc(getDb(), 'enrollments', enrollment.id))
     } catch (error) {
       console.error('Unenroll user error:', error)
       throw error

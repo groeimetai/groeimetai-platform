@@ -16,7 +16,7 @@ import {
   arrayUnion,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getDb } from '../lib/firebase/db-getter';
 import { COLLECTIONS } from '../../firebase/data-model';
 import type { Objective, ObjectiveProgress, Milestone } from '../types';
 
@@ -51,7 +51,7 @@ class ObjectiveService {
         reflections: [],
       };
 
-      const docRef = await addDoc(collection(db, COLLECTIONS.OBJECTIVES), newObjective);
+      const docRef = await addDoc(collection(getDb(), COLLECTIONS.OBJECTIVES), newObjective);
       return docRef.id;
     } catch (error) {
       console.error('Error creating objective:', error);
@@ -67,7 +67,7 @@ class ObjectiveService {
   ): Promise<Objective[]> {
     try {
       let q = query(
-        collection(db, COLLECTIONS.OBJECTIVES),
+        collection(getDb(), COLLECTIONS.OBJECTIVES),
         where('userId', '==', userId)
       );
 
@@ -96,7 +96,7 @@ class ObjectiveService {
   async getCourseRelatedObjectives(courseId: string, userId?: string): Promise<Objective[]> {
     try {
       let q = query(
-        collection(db, COLLECTIONS.OBJECTIVES),
+        collection(getDb(), COLLECTIONS.OBJECTIVES),
         where('relatedCourses', 'array-contains', courseId),
         where('status', '==', 'active')
       );
@@ -119,7 +119,7 @@ class ObjectiveService {
   // Get a single objective
   async getObjective(objectiveId: string): Promise<Objective | null> {
     try {
-      const docSnap = await getDoc(doc(db, COLLECTIONS.OBJECTIVES, objectiveId));
+      const docSnap = await getDoc(doc(getDb(), COLLECTIONS.OBJECTIVES, objectiveId));
       
       if (docSnap.exists()) {
         return {
@@ -143,7 +143,7 @@ class ObjectiveService {
         updatedAt: serverTimestamp(),
       };
       
-      await updateDoc(doc(db, COLLECTIONS.OBJECTIVES, objectiveId), updateData);
+      await updateDoc(doc(getDb(), COLLECTIONS.OBJECTIVES, objectiveId), updateData);
     } catch (error) {
       console.error('Error updating objective:', error);
       throw error;
@@ -157,10 +157,10 @@ class ObjectiveService {
     activities: ObjectiveProgress['activities']
   ): Promise<void> {
     try {
-      const batch = writeBatch(db);
+      const batch = writeBatch(getDb());
 
       // Get current objective
-      const objectiveRef = doc(db, COLLECTIONS.OBJECTIVES, objectiveId);
+      const objectiveRef = doc(getDb(), COLLECTIONS.OBJECTIVES, objectiveId);
       const objectiveSnap = await getDoc(objectiveRef);
       
       if (!objectiveSnap.exists()) {
@@ -194,7 +194,7 @@ class ObjectiveService {
         updatedAt: serverTimestamp(),
       };
 
-      batch.set(doc(collection(db, COLLECTIONS.OBJECTIVE_PROGRESS)), progressData);
+      batch.set(doc(collection(getDb(), COLLECTIONS.OBJECTIVE_PROGRESS)), progressData);
 
       // Check if objective is completed
       if (newProgress >= 100 && objective.status === 'active') {
@@ -214,7 +214,7 @@ class ObjectiveService {
   // Complete a milestone
   async completeMilestone(objectiveId: string, milestoneId: string): Promise<void> {
     try {
-      const objectiveRef = doc(db, COLLECTIONS.OBJECTIVES, objectiveId);
+      const objectiveRef = doc(getDb(), COLLECTIONS.OBJECTIVES, objectiveId);
       const objectiveSnap = await getDoc(objectiveRef);
       
       if (!objectiveSnap.exists()) {
@@ -259,7 +259,7 @@ class ObjectiveService {
         progressAtTime: 0, // Will be set from current progress
       };
 
-      await updateDoc(doc(db, COLLECTIONS.OBJECTIVES, objectiveId), {
+      await updateDoc(doc(getDb(), COLLECTIONS.OBJECTIVES, objectiveId), {
         reflections: arrayUnion(reflection),
         updatedAt: serverTimestamp(),
       });
@@ -273,7 +273,7 @@ class ObjectiveService {
   async getObjectiveProgress(objectiveId: string, limit = 30): Promise<ObjectiveProgress[]> {
     try {
       const q = query(
-        collection(db, COLLECTIONS.OBJECTIVE_PROGRESS),
+        collection(getDb(), COLLECTIONS.OBJECTIVE_PROGRESS),
         where('objectiveId', '==', objectiveId),
         orderBy('date', 'desc'),
         limit
@@ -300,7 +300,7 @@ class ObjectiveService {
       endOfDay.setHours(23, 59, 59, 999);
 
       const q = query(
-        collection(db, COLLECTIONS.OBJECTIVE_PROGRESS),
+        collection(getDb(), COLLECTIONS.OBJECTIVE_PROGRESS),
         where('userId', '==', userId),
         where('date', '>=', Timestamp.fromDate(startOfDay)),
         where('date', '<=', Timestamp.fromDate(endOfDay)),
@@ -321,7 +321,7 @@ class ObjectiveService {
   // Delete an objective
   async deleteObjective(objectiveId: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, COLLECTIONS.OBJECTIVES, objectiveId));
+      await deleteDoc(doc(getDb(), COLLECTIONS.OBJECTIVES, objectiveId));
     } catch (error) {
       console.error('Error deleting objective:', error);
       throw error;
