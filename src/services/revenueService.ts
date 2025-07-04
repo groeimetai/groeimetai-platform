@@ -18,7 +18,7 @@ import {
   limit,
   startAfter
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase/db-getter';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { 
   RevenueShare, 
@@ -65,7 +65,7 @@ export function calculatePlatformFee(amount: number, authorType: AuthorType): nu
 async function getAuthorType(authorId: string): Promise<AuthorType> {
   try {
     // Check author revenue settings first
-    const settingsDoc = await getDoc(doc(db, COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId));
+    const settingsDoc = await getDoc(doc(getDb(), COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId));
     if (settingsDoc.exists()) {
       const settings = settingsDoc.data() as AuthorRevenueSettings;
       return settings.authorType;
@@ -73,7 +73,7 @@ async function getAuthorType(authorId: string): Promise<AuthorType> {
 
     // Default logic: Check total sales to determine if established
     const revenueQuery = query(
-      collection(db, COLLECTION_REVENUE_TRANSACTIONS),
+      collection(getDb(), COLLECTION_REVENUE_TRANSACTIONS),
       where('distribution.author.authorId', '==', authorId),
       where('status', '==', 'processed')
     );
@@ -170,10 +170,10 @@ export async function processCourseSale(
     }
 
     // Save transaction using Firestore transaction for consistency
-    await runTransaction(db, async (transaction) => {
+    await runTransaction(getDb(), async (transaction) => {
       // Save revenue transaction
       transaction.set(
-        doc(db, COLLECTION_REVENUE_TRANSACTIONS, transactionId), 
+        doc(getDb(), COLLECTION_REVENUE_TRANSACTIONS, transactionId), 
         revenueTransaction
       );
 
@@ -196,13 +196,13 @@ export async function processCourseSale(
         };
         
         transaction.set(
-          doc(db, COLLECTION_AFFILIATE_TRANSACTIONS, affiliateTransactionId),
+          doc(getDb(), COLLECTION_AFFILIATE_TRANSACTIONS, affiliateTransactionId),
           affiliateTransaction
         );
       }
 
       // Update author's available balance (stored in author revenue settings)
-      const authorSettingsRef = doc(db, COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId);
+      const authorSettingsRef = doc(getDb(), COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId);
       const settingsDoc = await getDoc(authorSettingsRef);
       
       if (settingsDoc.exists()) {
@@ -269,7 +269,7 @@ export async function getAuthorEarnings(
   try {
     // Build query
     let earningsQuery = query(
-      collection(db, COLLECTION_REVENUE_TRANSACTIONS),
+      collection(getDb(), COLLECTION_REVENUE_TRANSACTIONS),
       where('distribution.author.authorId', '==', authorId),
       where('status', '==', 'processed'),
       orderBy('createdAt', 'desc')
@@ -352,7 +352,7 @@ export async function getAuthorEarnings(
 
     // Get payout information
     const payoutQuery = query(
-      collection(db, COLLECTION_PAYOUT_REQUESTS),
+      collection(getDb(), COLLECTION_PAYOUT_REQUESTS),
       where('authorId', '==', authorId)
     );
     
@@ -398,7 +398,7 @@ export async function requestPayout(
 ): Promise<PayoutRequest> {
   try {
     // Get author's current balance
-    const settingsDoc = await getDoc(doc(db, COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId));
+    const settingsDoc = await getDoc(doc(getDb(), COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId));
     if (!settingsDoc.exists()) {
       throw new Error('Author revenue settings not found');
     }
@@ -422,7 +422,7 @@ export async function requestPayout(
 
     // Get recent transactions to include in payout
     const transactionsQuery = query(
-      collection(db, COLLECTION_REVENUE_TRANSACTIONS),
+      collection(getDb(), COLLECTION_REVENUE_TRANSACTIONS),
       where('distribution.author.authorId', '==', authorId),
       where('status', '==', 'processed'),
       orderBy('createdAt', 'desc'),
@@ -457,15 +457,15 @@ export async function requestPayout(
     };
 
     // Save payout request and update balance atomically
-    await runTransaction(db, async (transaction) => {
+    await runTransaction(getDb(), async (transaction) => {
       // Save payout request
       transaction.set(
-        doc(db, COLLECTION_PAYOUT_REQUESTS, payoutId),
+        doc(getDb(), COLLECTION_PAYOUT_REQUESTS, payoutId),
         payoutRequest
       );
 
       // Update author's available balance
-      transaction.update(doc(db, COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId), {
+      transaction.update(doc(getDb(), COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId), {
         availableBalance: availableBalance - amount,
         lastPayoutRequestAt: timestamp,
         updatedAt: timestamp
@@ -490,7 +490,7 @@ export async function reverseRevenue(
   try {
     // Find the original revenue transaction
     const revenueQuery = query(
-      collection(db, COLLECTION_REVENUE_TRANSACTIONS),
+      collection(getDb(), COLLECTION_REVENUE_TRANSACTIONS),
       where('paymentId', '==', paymentId),
       limit(1)
     );
@@ -529,16 +529,16 @@ export async function reverseRevenue(
     };
 
     // Process refund atomically
-    await runTransaction(db, async (transaction) => {
+    await runTransaction(getDb(), async (transaction) => {
       // Save refund record
       transaction.set(
-        doc(db, COLLECTION_REVENUE_REFUNDS, refundId),
+        doc(getDb(), COLLECTION_REVENUE_REFUNDS, refundId),
         revenueRefund
       );
 
       // Update original transaction status
       transaction.update(
-        doc(db, COLLECTION_REVENUE_TRANSACTIONS, originalTransaction.id),
+        doc(getDb(), COLLECTION_REVENUE_TRANSACTIONS, originalTransaction.id),
         {
           status: 'reversed',
           updatedAt: timestamp
@@ -547,7 +547,7 @@ export async function reverseRevenue(
 
       // Update author's available balance
       const authorId = originalTransaction.distribution.author.authorId;
-      const settingsRef = doc(db, COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId);
+      const settingsRef = doc(getDb(), COLLECTION_AUTHOR_REVENUE_SETTINGS, authorId);
       const settingsDoc = await getDoc(settingsRef);
       
       if (settingsDoc.exists()) {
@@ -574,7 +574,7 @@ async function validateAffiliateCode(affiliateCode: string): Promise<string | nu
     // This is a simplified implementation
     // In production, you would have an affiliates collection
     const affiliatesQuery = query(
-      collection(db, 'affiliates'),
+      collection(getDb(), 'affiliates'),
       where('code', '==', affiliateCode),
       where('active', '==', true),
       limit(1)

@@ -11,7 +11,7 @@ import {
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { getDb } from '@/lib/firebase/db-getter'
 import { 
   AffiliateLink, 
   AffiliatePartner, 
@@ -27,7 +27,7 @@ export class AffiliateService {
     try {
       // Check if link already exists
       const existingLinkQuery = query(
-        collection(db, 'affiliateLinks'),
+        collection(getDb(), 'affiliateLinks'),
         where('courseId', '==', courseId),
         where('userId', '==', userId)
       )
@@ -55,7 +55,7 @@ export class AffiliateService {
         revenue: 0
       }
 
-      const docRef = await addDoc(collection(db, 'affiliateLinks'), {
+      const docRef = await addDoc(collection(getDb(), 'affiliateLinks'), {
         ...newLink,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -79,7 +79,7 @@ export class AffiliateService {
   static async trackAffiliateClick(code: string): Promise<void> {
     try {
       const linkQuery = query(
-        collection(db, 'affiliateLinks'),
+        collection(getDb(), 'affiliateLinks'),
         where('code', '==', code)
       )
       const snapshot = await getDocs(linkQuery)
@@ -89,13 +89,13 @@ export class AffiliateService {
       }
 
       const linkDoc = snapshot.docs[0]
-      await updateDoc(doc(db, 'affiliateLinks', linkDoc.id), {
+      await updateDoc(doc(getDb(), 'affiliateLinks', linkDoc.id), {
         clickCount: increment(1),
         updatedAt: serverTimestamp()
       })
 
       // Track click analytics
-      await addDoc(collection(db, 'affiliateClicks'), {
+      await addDoc(collection(getDb(), 'affiliateClicks'), {
         affiliateLinkId: linkDoc.id,
         code,
         timestamp: serverTimestamp(),
@@ -118,7 +118,7 @@ export class AffiliateService {
     try {
       // Get affiliate link
       const linkQuery = query(
-        collection(db, 'affiliateLinks'),
+        collection(getDb(), 'affiliateLinks'),
         where('code', '==', code)
       )
       const linkSnapshot = await getDocs(linkQuery)
@@ -150,21 +150,21 @@ export class AffiliateService {
         status: 'pending'
       }
 
-      const transactionRef = await addDoc(collection(db, 'affiliateTransactions'), {
+      const transactionRef = await addDoc(collection(getDb(), 'affiliateTransactions'), {
         ...transaction,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       })
 
       // Update affiliate link stats
-      await updateDoc(doc(db, 'affiliateLinks', linkDoc.id), {
+      await updateDoc(doc(getDb(), 'affiliateLinks', linkDoc.id), {
         conversionCount: increment(1),
         revenue: increment(purchaseAmount),
         updatedAt: serverTimestamp()
       })
 
       // Update partner stats
-      await updateDoc(doc(db, 'affiliatePartners', partner.id), {
+      await updateDoc(doc(getDb(), 'affiliatePartners', partner.id), {
         totalEarnings: increment(commissionAmount),
         totalConversions: increment(1),
         updatedAt: serverTimestamp()
@@ -189,7 +189,7 @@ export class AffiliateService {
     try {
       // Get all affiliate links for user
       const linksQuery = query(
-        collection(db, 'affiliateLinks'),
+        collection(getDb(), 'affiliateLinks'),
         where('userId', '==', userId)
       )
       const linksSnapshot = await getDocs(linksQuery)
@@ -244,7 +244,7 @@ export class AffiliateService {
   private static async getAffiliatePartner(userId: string): Promise<AffiliatePartner | null> {
     try {
       const partnerQuery = query(
-        collection(db, 'affiliatePartners'),
+        collection(getDb(), 'affiliatePartners'),
         where('id', '==', userId)
       )
       const snapshot = await getDocs(partnerQuery)
@@ -285,7 +285,7 @@ export class AffiliateService {
 
       // Check if code exists
       const existingQuery = query(
-        collection(db, 'affiliateLinks'),
+        collection(getDb(), 'affiliateLinks'),
         where('code', '==', code)
       )
       const snapshot = await getDocs(existingQuery)
@@ -312,7 +312,7 @@ export class AffiliateService {
       
       if (existingPartner) {
         // Update existing partner
-        await updateDoc(doc(db, 'affiliatePartners', existingPartner.id), {
+        await updateDoc(doc(getDb(), 'affiliatePartners', existingPartner.id), {
           ...data,
           updatedAt: serverTimestamp()
         })
@@ -335,7 +335,7 @@ export class AffiliateService {
           status: 'pending'
         }
 
-        await addDoc(collection(db, 'affiliatePartners'), {
+        await addDoc(collection(getDb(), 'affiliatePartners'), {
           ...newPartner,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
@@ -393,7 +393,7 @@ export class AffiliateService {
   ): Promise<AffiliateTransaction[]> {
     try {
       let transactionsQuery = query(
-        collection(db, 'affiliateTransactions'),
+        collection(getDb(), 'affiliateTransactions'),
         where('affiliatePartnerId', '==', affiliatePartnerId)
       )
 

@@ -20,7 +20,7 @@ import {
   WriteBatch,
   writeBatch
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase/db-getter';
 import { 
   Doelstelling, 
   UserDoelstellingProgress, 
@@ -48,7 +48,7 @@ export class DoelstellingService {
     // Validate input
     this.validateDoelstelling(doelstelling);
     
-    const docRef = doc(collection(db, COLLECTIONS.DOELSTELLINGEN));
+    const docRef = doc(collection(getDb(), COLLECTIONS.DOELSTELLINGEN));
     const now = Timestamp.now();
     
     const newDoelstelling: Doelstelling = {
@@ -72,7 +72,7 @@ export class DoelstellingService {
    * Get doelstelling by ID
    */
   static async getDoelstellingById(id: string): Promise<Doelstelling | null> {
-    const docRef = doc(db, COLLECTIONS.DOELSTELLINGEN, id);
+    const docRef = doc(getDb(), COLLECTIONS.DOELSTELLINGEN, id);
     const snapshot = await getDoc(docRef);
     
     if (!snapshot.exists()) {
@@ -89,7 +89,7 @@ export class DoelstellingService {
     id: string, 
     updates: Partial<Omit<Doelstelling, 'id' | 'createdAt'>>
   ): Promise<void> {
-    const docRef = doc(db, COLLECTIONS.DOELSTELLINGEN, id);
+    const docRef = doc(getDb(), COLLECTIONS.DOELSTELLINGEN, id);
     
     await updateDoc(docRef, {
       ...updates,
@@ -101,17 +101,17 @@ export class DoelstellingService {
    * Delete doelstelling
    */
   static async deleteDoelstelling(id: string): Promise<void> {
-    const docRef = doc(db, COLLECTIONS.DOELSTELLINGEN, id);
+    const docRef = doc(getDb(), COLLECTIONS.DOELSTELLINGEN, id);
     await deleteDoc(docRef);
     
     // Also delete all user progress records
     const progressQuery = query(
-      collection(db, COLLECTIONS.USER_PROGRESS),
+      collection(getDb(), COLLECTIONS.USER_PROGRESS),
       where('doelstellingId', '==', id)
     );
     
     const progressSnapshot = await getDocs(progressQuery);
-    const batch = writeBatch(db);
+    const batch = writeBatch(getDb());
     
     progressSnapshot.docs.forEach(doc => {
       batch.delete(doc.ref);
@@ -133,7 +133,7 @@ export class DoelstellingService {
     sort?: DoelstellingSort
   ): Promise<Doelstelling[]> {
     let q = query(
-      collection(db, COLLECTIONS.DOELSTELLINGEN),
+      collection(getDb(), COLLECTIONS.DOELSTELLINGEN),
       where('courseId', '==', courseId)
     );
     
@@ -170,7 +170,7 @@ export class DoelstellingService {
     moduleId: string
   ): Promise<Doelstelling[]> {
     const q = query(
-      collection(db, COLLECTIONS.DOELSTELLINGEN),
+      collection(getDb(), COLLECTIONS.DOELSTELLINGEN),
       where('courseId', '==', courseId),
       where('moduleId', '==', moduleId),
       orderBy('order', 'asc')
@@ -192,7 +192,7 @@ export class DoelstellingService {
     doelstellingId: string
   ): Promise<UserDoelstellingProgress | null> {
     const progressId = `${userId}_${doelstellingId}`;
-    const docRef = doc(db, COLLECTIONS.USER_PROGRESS, progressId);
+    const docRef = doc(getDb(), COLLECTIONS.USER_PROGRESS, progressId);
     const snapshot = await getDoc(docRef);
     
     if (!snapshot.exists()) {
@@ -211,7 +211,7 @@ export class DoelstellingService {
     courseId: string
   ): Promise<UserDoelstellingProgress> {
     const progressId = `${userId}_${doelstellingId}`;
-    const docRef = doc(db, COLLECTIONS.USER_PROGRESS, progressId);
+    const docRef = doc(getDb(), COLLECTIONS.USER_PROGRESS, progressId);
     const now = Timestamp.now();
     
     const progress: UserDoelstellingProgress = {
@@ -249,7 +249,7 @@ export class DoelstellingService {
     updates: Partial<UserDoelstellingProgress>
   ): Promise<void> {
     const progressId = `${userId}_${doelstellingId}`;
-    const docRef = doc(db, COLLECTIONS.USER_PROGRESS, progressId);
+    const docRef = doc(getDb(), COLLECTIONS.USER_PROGRESS, progressId);
     
     await updateDoc(docRef, {
       ...updates,
@@ -267,7 +267,7 @@ export class DoelstellingService {
     timeSpent: number
   ): Promise<void> {
     const progressId = `${userId}_${doelstellingId}`;
-    const docRef = doc(db, COLLECTIONS.USER_PROGRESS, progressId);
+    const docRef = doc(getDb(), COLLECTIONS.USER_PROGRESS, progressId);
     const now = Timestamp.now();
     
     // Get current progress
@@ -305,7 +305,7 @@ export class DoelstellingService {
     courseId: string
   ): Promise<DoelstellingStatistics> {
     const q = query(
-      collection(db, COLLECTIONS.USER_PROGRESS),
+      collection(getDb(), COLLECTIONS.USER_PROGRESS),
       where('userId', '==', userId),
       where('courseId', '==', courseId)
     );
@@ -409,7 +409,7 @@ export class DoelstellingService {
    * Increment view count
    */
   private static async incrementViewCount(doelstellingId: string): Promise<void> {
-    const docRef = doc(db, COLLECTIONS.DOELSTELLINGEN, doelstellingId);
+    const docRef = doc(getDb(), COLLECTIONS.DOELSTELLINGEN, doelstellingId);
     const doelstelling = await this.getDoelstellingById(doelstellingId);
     
     if (doelstelling) {
@@ -427,7 +427,7 @@ export class DoelstellingService {
     score: number,
     timeSpent: number
   ): Promise<void> {
-    const docRef = doc(db, COLLECTIONS.DOELSTELLINGEN, doelstellingId);
+    const docRef = doc(getDb(), COLLECTIONS.DOELSTELLINGEN, doelstellingId);
     const doelstelling = await this.getDoelstellingById(doelstellingId);
     
     if (doelstelling && doelstelling.tracking) {

@@ -10,7 +10,7 @@ import {
   where,
   orderBy,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { getDb } from '@/lib/firebase/db-getter'
 import { Assessment, AssessmentAttempt, Question, Answer } from '@/types'
 import { onAssessmentCompleted } from './certificateGenerationService'
 
@@ -20,7 +20,7 @@ export class AssessmentService {
    */
   static async saveProgress(attemptId: string, answers: Answer[]): Promise<void> {
     try {
-      const attemptRef = doc(db, 'assessment_attempts', attemptId)
+      const attemptRef = doc(getDb(), 'assessment_attempts', attemptId)
       await updateDoc(attemptRef, {
         answers,
         lastSavedAt: new Date(),
@@ -41,7 +41,7 @@ export class AssessmentService {
         updatedAt: new Date(),
       }
       
-      const docRef = await addDoc(collection(db, 'assessments'), assessmentData)
+      const docRef = await addDoc(collection(getDb(), 'assessments'), assessmentData)
       return docRef.id
     } catch (error) {
       console.error('Create assessment error:', error)
@@ -54,7 +54,7 @@ export class AssessmentService {
    */
   static async getAssessmentById(assessmentId: string): Promise<Assessment | null> {
     try {
-      const assessmentDoc = await getDoc(doc(db, 'assessments', assessmentId))
+      const assessmentDoc = await getDoc(doc(getDb(), 'assessments', assessmentId))
       if (!assessmentDoc.exists()) return null
 
       return {
@@ -73,7 +73,7 @@ export class AssessmentService {
   static async getCourseAssessments(courseId: string): Promise<Assessment[]> {
     try {
       const q = query(
-        collection(db, 'assessments'),
+        collection(getDb(), 'assessments'),
         where('courseId', '==', courseId),
         where('isActive', '==', true),
         orderBy('createdAt', 'asc')
@@ -95,7 +95,7 @@ export class AssessmentService {
    */
   static async updateAssessment(assessmentId: string, updates: Partial<Assessment>): Promise<void> {
     try {
-      const assessmentRef = doc(db, 'assessments', assessmentId)
+      const assessmentRef = doc(getDb(), 'assessments', assessmentId)
       await updateDoc(assessmentRef, {
         ...updates,
         updatedAt: new Date(),
@@ -111,7 +111,7 @@ export class AssessmentService {
    */
   static async deleteAssessment(assessmentId: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, 'assessments', assessmentId))
+      await deleteDoc(doc(getDb(), 'assessments', assessmentId))
     } catch (error) {
       console.error('Delete assessment error:', error)
       throw error
@@ -179,7 +179,7 @@ export class AssessmentService {
         timeSpent: 0,
       }
 
-      const docRef = await addDoc(collection(db, 'assessment_attempts'), attempt)
+      const docRef = await addDoc(collection(getDb(), 'assessment_attempts'), attempt)
       return docRef.id
     } catch (error) {
       console.error('Start assessment attempt error:', error)
@@ -195,7 +195,7 @@ export class AssessmentService {
     answers: Answer[]
   ): Promise<AssessmentAttempt> {
     try {
-      const attemptRef = doc(db, 'assessment_attempts', attemptId)
+      const attemptRef = doc(getDb(), 'assessment_attempts', attemptId)
       const attemptDoc = await getDoc(attemptRef)
       
       if (!attemptDoc.exists()) {
@@ -256,7 +256,7 @@ export class AssessmentService {
   static async getUserAssessmentAttempts(userId: string, assessmentId: string): Promise<AssessmentAttempt[]> {
     try {
       const q = query(
-        collection(db, 'assessment_attempts'),
+        collection(getDb(), 'assessment_attempts'),
         where('userId', '==', userId),
         where('assessmentId', '==', assessmentId),
         orderBy('startedAt', 'desc')
@@ -278,7 +278,7 @@ export class AssessmentService {
    */
   static async getAttemptById(attemptId: string): Promise<AssessmentAttempt | null> {
     try {
-      const attemptDoc = await getDoc(doc(db, 'assessment_attempts', attemptId))
+      const attemptDoc = await getDoc(doc(getDb(), 'assessment_attempts', attemptId))
       if (!attemptDoc.exists()) return null
 
       return {

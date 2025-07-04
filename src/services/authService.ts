@@ -8,7 +8,7 @@ import {
   Auth,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { getDb } from '@/lib/firebase/db-getter'
 import { initializeAuth } from '@/lib/firebase/auth-init'
 import { User } from '@/types'
 
@@ -50,7 +50,7 @@ export class AuthService {
 
       // Try to create the Firestore document
       try {
-        await setDoc(doc(db, 'users', firebaseUser.uid), user)
+        await setDoc(doc(getDb(), 'users', firebaseUser.uid), user)
       } catch (firestoreError) {
         console.error('Firestore write error:', firestoreError)
         // If Firestore write fails, delete the auth account to maintain consistency
@@ -88,7 +88,7 @@ export class AuthService {
       const firebaseUser = userCredential.user
 
       // Get user data from Firestore
-      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+      const userDoc = await getDoc(doc(getDb(), 'users', firebaseUser.uid))
       if (!userDoc.exists()) {
         throw new Error('User data not found')
       }
@@ -122,7 +122,7 @@ export class AuthService {
       const firebaseUser = auth.currentUser
       if (!firebaseUser) return null
 
-      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+      const userDoc = await getDoc(doc(getDb(), 'users', firebaseUser.uid))
       if (!userDoc.exists()) return null
 
       return userDoc.data() as User
@@ -137,7 +137,7 @@ export class AuthService {
    */
   static async updateUserProfile(userId: string, updates: Partial<User>): Promise<void> {
     try {
-      const userRef = doc(db, 'users', userId)
+      const userRef = doc(getDb(), 'users', userId)
       await updateDoc(userRef, {
         ...updates,
         updatedAt: new Date(),

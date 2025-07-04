@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase/db-getter';
 import { 
   doc, 
   getDoc, 
@@ -142,7 +142,7 @@ export const BADGES: Record<string, Omit<Badge, 'unlockedAt'>> = {
 class GamificationService {
   async getUserProgress(userId: string): Promise<UserProgress | null> {
     try {
-      const progressDoc = await getDoc(doc(db, 'userProgress', userId));
+      const progressDoc = await getDoc(doc(getDb(), 'userProgress', userId));
       if (!progressDoc.exists()) {
         return null;
       }
@@ -173,7 +173,7 @@ class GamificationService {
       }
     };
 
-    await setDoc(doc(db, 'userProgress', userId), {
+    await setDoc(doc(getDb(), 'userProgress', userId), {
       ...initialProgress,
       lastActivityDate: serverTimestamp()
     });
@@ -182,7 +182,7 @@ class GamificationService {
   }
 
   async awardXP(userId: string, amount: number, reason: string): Promise<void> {
-    const userProgressRef = doc(db, 'userProgress', userId);
+    const userProgressRef = doc(getDb(), 'userProgress', userId);
     
     // Get current progress
     const progress = await this.getUserProgress(userId);
@@ -203,7 +203,7 @@ class GamificationService {
     });
 
     // Record XP transaction
-    await setDoc(doc(collection(db, 'xpTransactions')), {
+    await setDoc(doc(collection(getDb(), 'xpTransactions')), {
       userId,
       amount,
       reason,
@@ -243,7 +243,7 @@ class GamificationService {
     const badge = BADGES[badgeId];
     if (!badge) return;
 
-    const userProgressRef = doc(db, 'userProgress', userId);
+    const userProgressRef = doc(getDb(), 'userProgress', userId);
     
     await updateDoc(userProgressRef, {
       badges: arrayUnion({
@@ -296,7 +296,7 @@ class GamificationService {
       newStreak = 1;
     }
 
-    await updateDoc(doc(db, 'userProgress', userId), {
+    await updateDoc(doc(getDb(), 'userProgress', userId), {
       streak: newStreak,
       lastActivityDate: serverTimestamp()
     });
@@ -335,7 +335,7 @@ class GamificationService {
       return a;
     });
 
-    await updateDoc(doc(db, 'userProgress', userId), {
+    await updateDoc(doc(getDb(), 'userProgress', userId), {
       achievements
     });
   }
@@ -382,7 +382,7 @@ class GamificationService {
 
     const updatedSkills = updateSkillRecursive(userProgress.skills);
     
-    await updateDoc(doc(db, 'userProgress', userId), {
+    await updateDoc(doc(getDb(), 'userProgress', userId), {
       skills: updatedSkills
     });
   }
@@ -390,7 +390,7 @@ class GamificationService {
   async getLeaderboard(timeframe: 'daily' | 'weekly' | 'all-time', limit = 10): Promise<LeaderboardEntry[]> {
     try {
       const q = query(
-        collection(db, 'userProgress'),
+        collection(getDb(), 'userProgress'),
         orderBy('xp', 'desc'),
         limit(limit)
       );

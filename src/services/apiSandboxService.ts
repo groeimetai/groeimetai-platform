@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase/db-getter';
 import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
 
 export interface ApiProvider {
@@ -183,7 +183,7 @@ class ApiSandboxService {
   }
 
   async initializeStudent(userId: string, config?: Partial<RateLimitConfig>) {
-    const userDoc = doc(db, 'apiSandbox', userId);
+    const userDoc = doc(getDb(), 'apiSandbox', userId);
     const rateLimits = { ...DEFAULT_RATE_LIMITS, ...config };
     
     await setDoc(userDoc, {
@@ -212,7 +212,7 @@ class ApiSandboxService {
     });
 
     // Get user config from database
-    const userDoc = await getDoc(doc(db, 'apiSandbox', userId));
+    const userDoc = await getDoc(doc(getDb(), 'apiSandbox', userId));
     const config = userDoc.data()?.rateLimits || DEFAULT_RATE_LIMITS;
 
     // Check rate limits
@@ -353,7 +353,7 @@ class ApiSandboxService {
     rateLimitCache.set(userId, userCache);
 
     // Update database
-    const userDoc = doc(db, 'apiSandbox', userId);
+    const userDoc = doc(getDb(), 'apiSandbox', userId);
     await updateDoc(userDoc, {
       'usage.totalRequests': increment(1),
       'usage.totalCost': increment(cost),
@@ -365,7 +365,7 @@ class ApiSandboxService {
   }
 
   async getUsageMetrics(userId: string): Promise<UsageMetrics> {
-    const userDoc = await getDoc(doc(db, 'apiSandbox', userId));
+    const userDoc = await getDoc(doc(getDb(), 'apiSandbox', userId));
     return userDoc.data()?.usage || {
       totalRequests: 0,
       totalCost: 0,
@@ -377,7 +377,7 @@ class ApiSandboxService {
 
   async storeApiKey(userId: string, provider: string, apiKey: string) {
     const encryptedKey = encrypt(apiKey);
-    const userDoc = doc(db, 'apiSandbox', userId);
+    const userDoc = doc(getDb(), 'apiSandbox', userId);
     
     await updateDoc(userDoc, {
       [`apiKeys.${provider}`]: encryptedKey,
@@ -386,7 +386,7 @@ class ApiSandboxService {
   }
 
   async getApiKey(userId: string, provider: string): Promise<string | null> {
-    const userDoc = await getDoc(doc(db, 'apiSandbox', userId));
+    const userDoc = await getDoc(doc(getDb(), 'apiSandbox', userId));
     const encryptedKey = userDoc.data()?.apiKeys?.[provider];
     
     if (!encryptedKey) return null;

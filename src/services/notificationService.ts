@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase'
+import { getDb } from '@/lib/firebase/db-getter'
 import { collection, addDoc, query, where, orderBy, getDocs, updateDoc, doc } from 'firebase/firestore'
 
 interface NotificationData {
@@ -23,7 +23,7 @@ export class NotificationService {
         createdAt: new Date(),
       }
       
-      const docRef = await addDoc(collection(db, 'notifications'), notificationDoc)
+      const docRef = await addDoc(collection(getDb(), 'notifications'), notificationDoc)
       return docRef.id
     } catch (error) {
       console.error('Send notification error:', error)
@@ -37,7 +37,7 @@ export class NotificationService {
   static async getUserNotifications(userId: string, limit: number = 20): Promise<any[]> {
     try {
       const q = query(
-        collection(db, 'notifications'),
+        collection(getDb(), 'notifications'),
         where('userId', '==', userId),
         orderBy('createdAt', 'desc')
       )
@@ -58,7 +58,7 @@ export class NotificationService {
    */
   static async markAsRead(notificationId: string): Promise<void> {
     try {
-      await updateDoc(doc(db, 'notifications', notificationId), {
+      await updateDoc(doc(getDb(), 'notifications', notificationId), {
         read: true,
         readAt: new Date()
       })
