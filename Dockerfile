@@ -45,6 +45,7 @@ ENV NEXT_PUBLIC_PINATA_GATEWAY=$NEXT_PUBLIC_PINATA_GATEWAY
 # Build the Next.js application
 # Skip Firebase Admin initialization during build
 ENV BUILDING=true
+# The app now has hardcoded Firebase config as fallback
 RUN npm run build
 
 # Production stage
