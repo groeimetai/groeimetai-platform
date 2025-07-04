@@ -112,8 +112,8 @@ export class CertificateService {
 
       // Get user and course data
       const [userDoc, courseDoc] = await Promise.all([
-        getDoc(doc(db, 'users', userId)),
-        getDoc(doc(db, 'courses', courseId))
+        getDoc(doc(getDb(), 'users', userId)),
+        getDoc(doc(getDb(), 'courses', courseId))
       ])
 
       if (!userDoc.exists()) {
@@ -321,7 +321,7 @@ export class CertificateService {
               let studentAddress = '0x0000000000000000000000000000000000000000' // Default placeholder
               
               // Try to get user's wallet address from their profile
-              const userDoc = await getDoc(doc(db, 'users', params.userId))
+              const userDoc = await getDoc(doc(getDb(), 'users', params.userId))
               if (userDoc.exists()) {
                 const userData = userDoc.data()
                 if (userData.walletAddress) {
@@ -460,7 +460,7 @@ export class CertificateService {
       })
       
       // Update user statistics
-      await updateDoc(doc(db, 'users', params.userId), {
+      await updateDoc(doc(getDb(), 'users', params.userId), {
         'stats.certificatesEarned': increment(1),
         updatedAt: serverTimestamp(),
       })

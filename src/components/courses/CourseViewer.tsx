@@ -106,13 +106,13 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
           console.error('Error updating enrollment progress:', error);
         }
         
-        // Check if course is now complete
-        checkCourseCompletion(newCompletedLessons);
+        // Check if course is now complete (this is a new completion)
+        checkCourseCompletion(newCompletedLessons, true);
       }
     }
   };
 
-  const checkCourseCompletion = async (currentCompletedLessons: string[]) => {
+  const checkCourseCompletion = async (currentCompletedLessons: string[], isNewCompletion = false) => {
     // Get all lesson IDs from all modules
     const allLessonIds = courseModules.flatMap(module => 
       module.lessons.map(lesson => lesson.id)
@@ -123,7 +123,11 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
       currentCompletedLessons.includes(lessonId)
     );
     
-    if (isComplete && !hasCheckedCompletion && user) {
+    // Only trigger course completion if:
+    // 1. All lessons are complete AND
+    // 2. This is a new completion (user just completed a lesson) OR we haven't checked completion yet
+    // 3. User is authenticated
+    if (isComplete && isNewCompletion && !hasCheckedCompletion && user) {
       setHasCheckedCompletion(true);
       
       // Update enrollment status first
@@ -240,6 +244,18 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
   useEffect(() => {
     const loadProgress = async () => {
       if (!user) return;
+      
+      // First, check if user already has a certificate for this course
+      try {
+        const existingCertificate = await CertificateService.getUserCourseCertificate(user.uid, course.id);
+        if (existingCertificate) {
+          setCertificate(existingCertificate);
+          setHasCheckedCompletion(true); // Prevent duplicate checks
+        }
+      } catch (error) {
+        console.error('Error checking for existing certificate:', error);
+      }
+      
       const courseProgress = await getCourseProgress(course.id);
       const completedFromDb = courseProgress
         .filter(p => p.completed)
@@ -278,7 +294,8 @@ function CourseContentView({ course, enrolled }: { course: CourseData, enrolled:
         }
         
         // Check if course is already completed
-        await checkCourseCompletion(updatedCompletedLessons);
+        // Pass false for isNewCompletion since we're just loading existing progress
+        await checkCourseCompletion(updatedCompletedLessons, false);
       }
     };
     loadProgress();
