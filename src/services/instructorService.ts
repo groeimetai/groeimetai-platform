@@ -9,8 +9,7 @@ import {
   orderBy,
   updateDoc,
   serverTimestamp,
-  Timestamp,
-  Firestore
+  Timestamp
 } from 'firebase/firestore'
 
 import { getDb } from '@/lib/firebase/db-getter';

@@ -9,7 +9,6 @@ import {
   query,
   where,
   orderBy,
-  Firestore,
 } from 'firebase/firestore'
 import { Enrollment, Progress } from '@/types'
 import { objectiveService } from './objectiveService'

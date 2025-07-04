@@ -11,8 +11,6 @@ import {
   serverTimestamp,
   increment,
   Timestamp,
-  Firestore,
-  FirebaseStorage,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import QRCode from 'qrcode'
