@@ -1,4 +1,3 @@
-import { db } from '@/lib/firebase';
 import { 
   collection, 
   doc, 
@@ -12,6 +11,7 @@ import {
   orderBy,
   limit
 } from 'firebase/firestore';
+import { getDb } from '@/lib/firebase/db-getter';
 
 export interface ReferralProgram {
   id: string;
@@ -78,8 +78,13 @@ export const referralService = {
 
   // Create or get referral program for user
   async getOrCreateReferralProgram(userId: string, userEmail: string): Promise<ReferralProgram> {
+    // Only run in browser
+    if (typeof window === 'undefined') {
+      throw new Error('Referral service only available in browser');
+    }
+    
     try {
-      const programRef = doc(db, 'referralPrograms', userId);
+      const programRef = doc(getDb(), 'referralPrograms', userId);
       const programDoc = await getDoc(programRef);
 
       if (programDoc.exists()) {
@@ -140,7 +145,7 @@ export const referralService = {
     try {
       // Find referral program by code
       const q = query(
-        collection(db, 'referralPrograms'), 
+        collection(getDb(), 'referralPrograms'), 
         where('referralCode', '==', referralCode)
       );
       const querySnapshot = await getDocs(q);
@@ -166,7 +171,7 @@ export const referralService = {
         madeFirstPurchase: false
       }];
 
-      await updateDoc(doc(db, 'referralPrograms', programDoc.id), {
+      await updateDoc(doc(getDb(), 'referralPrograms', programDoc.id), {
         referredUsers: updatedReferredUsers,
         'stats.totalReferrals': program.stats.totalReferrals + 1,
         updatedAt: serverTimestamp()
@@ -189,7 +194,7 @@ export const referralService = {
   ): Promise<{ rewardGranted: boolean }> {
     try {
       // Find if user was referred
-      const q = query(collection(db, 'referralPrograms'));
+      const q = query(collection(getDb(), 'referralPrograms'));
       const querySnapshot = await getDocs(q);
       
       let referrerProgram: ReferralProgram | null = null;
@@ -229,7 +234,7 @@ export const referralService = {
       const updatedRewards = [...referrerProgram.rewards, newReward];
 
       // Update referrer's program
-      await updateDoc(doc(db, 'referralPrograms', referrerDocId), {
+      await updateDoc(doc(getDb(), 'referralPrograms', referrerDocId), {
         referredUsers: updatedReferredUsers,
         rewards: updatedRewards,
         'stats.successfulReferrals': referrerProgram.stats.successfulReferrals + 1,
@@ -270,6 +275,25 @@ export const referralService = {
 
   // Get user's referral stats
   async getUserReferralStats(userId: string, userEmail: string = '') {
+    // Only run in browser
+    if (typeof window === 'undefined') {
+      return {
+        referralCode: '',
+        totalReferrals: 0,
+        successfulReferrals: 0,
+        availableRewards: 0,
+        totalEarned: 0,
+        referralLink: '',
+        shareLinks: {
+          whatsapp: '',
+          facebook: '',
+          twitter: '',
+          linkedin: '',
+          email: ''
+        }
+      };
+    }
+    
     try {
       const program = await this.getOrCreateReferralProgram(userId, userEmail);
       
@@ -327,7 +351,7 @@ export const referralService = {
           : r
       );
 
-      await updateDoc(doc(db, 'referralPrograms', userId), {
+      await updateDoc(doc(getDb(), 'referralPrograms', userId), {
         rewards: updatedRewards,
         updatedAt: serverTimestamp()
       });
@@ -362,7 +386,7 @@ export const referralService = {
   // Get referral leaderboard
   async getLeaderboard(limit = 10) {
     const q = query(
-      collection(db, 'referralPrograms'),
+      collection(getDb(), 'referralPrograms'),
       orderBy('stats.successfulReferrals', 'desc'),
       limit(limit)
     );

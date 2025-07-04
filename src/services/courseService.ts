@@ -13,7 +13,7 @@ import {
   startAfter,
   DocumentSnapshot,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { getDb } from '@/lib/firebase/db-getter'
 import { Course, Lesson, Enrollment, Author } from '@/types'
 import courses from '@/lib/data/courses'
 import type { CourseData } from '@/lib/data/courses'
@@ -67,9 +67,14 @@ export class CourseService {
    * Get all published courses
    */
   static async getPublishedCourses(): Promise<Course[]> {
+    // Only run in browser
+    if (typeof window === 'undefined') {
+      return [];
+    }
+    
     try {
       const q = query(
-        collection(db, 'courses'),
+        collection(getDb(), 'courses'),
         where('isPublished', '==', true),
         orderBy('createdAt', 'desc')
       )
@@ -91,7 +96,7 @@ export class CourseService {
   static async getCoursesByCategory(category: string): Promise<Course[]> {
     try {
       const q = query(
-        collection(db, 'courses'),
+        collection(getDb(), 'courses'),
         where('category', '==', category),
         where('isPublished', '==', true),
         orderBy('createdAt', 'desc')
@@ -113,7 +118,7 @@ export class CourseService {
    */
   static async getCourseById(courseId: string): Promise<Course | null> {
     try {
-      const courseDoc = await getDoc(doc(db, 'courses', courseId))
+      const courseDoc = await getDoc(doc(getDb(), 'courses', courseId))
       if (!courseDoc.exists()) return null
 
       return {
@@ -132,7 +137,7 @@ export class CourseService {
   static async getCourseLessons(courseId: string): Promise<Lesson[]> {
     try {
       const q = query(
-        collection(db, 'lessons'),
+        collection(getDb(), 'lessons'),
         where('courseId', '==', courseId),
         orderBy('order', 'asc')
       )
@@ -153,7 +158,7 @@ export class CourseService {
    */
   static async getLessonById(lessonId: string): Promise<Lesson | null> {
     try {
-      const lessonDoc = await getDoc(doc(db, 'lessons', lessonId))
+      const lessonDoc = await getDoc(doc(getDb(), 'lessons', lessonId))
       if (!lessonDoc.exists()) return null
 
       return {
@@ -177,7 +182,7 @@ export class CourseService {
         updatedAt: new Date(),
       }
       
-      const docRef = await addDoc(collection(db, 'courses'), courseData)
+      const docRef = await addDoc(collection(getDb(), 'courses'), courseData)
       return docRef.id
     } catch (error) {
       console.error('Create course error:', error)
@@ -190,7 +195,7 @@ export class CourseService {
    */
   static async updateCourse(courseId: string, updates: Partial<Course>): Promise<void> {
     try {
-      const courseRef = doc(db, 'courses', courseId)
+      const courseRef = doc(getDb(), 'courses', courseId)
       await updateDoc(courseRef, {
         ...updates,
         updatedAt: new Date(),
@@ -206,7 +211,7 @@ export class CourseService {
    */
   static async deleteCourse(courseId: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, 'courses', courseId))
+      await deleteDoc(doc(getDb(), 'courses', courseId))
     } catch (error) {
       console.error('Delete course error:', error)
       throw error
@@ -224,7 +229,7 @@ export class CourseService {
         updatedAt: new Date(),
       }
       
-      const docRef = await addDoc(collection(db, 'lessons'), lessonData)
+      const docRef = await addDoc(collection(getDb(), 'lessons'), lessonData)
       return docRef.id
     } catch (error) {
       console.error('Create lesson error:', error)
@@ -237,7 +242,7 @@ export class CourseService {
    */
   static async updateLesson(lessonId: string, updates: Partial<Lesson>): Promise<void> {
     try {
-      const lessonRef = doc(db, 'lessons', lessonId)
+      const lessonRef = doc(getDb(), 'lessons', lessonId)
       await updateDoc(lessonRef, {
         ...updates,
         updatedAt: new Date(),
@@ -253,7 +258,7 @@ export class CourseService {
    */
   static async deleteLesson(lessonId: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, 'lessons', lessonId))
+      await deleteDoc(doc(getDb(), 'lessons', lessonId))
     } catch (error) {
       console.error('Delete lesson error:', error)
       throw error
@@ -268,7 +273,7 @@ export class CourseService {
       // Note: This is a basic implementation. For production, consider using
       // a search service like Algolia or Elasticsearch for better search capabilities
       const q = query(
-        collection(db, 'courses'),
+        collection(getDb(), 'courses'),
         where('isPublished', '==', true),
         orderBy('title')
       )
@@ -297,7 +302,7 @@ export class CourseService {
   static async getAuthorsByUserId(userId: string): Promise<Author[]> {
     try {
       const q = query(
-        collection(db, 'authors'),
+        collection(getDb(), 'authors'),
         where('userId', '==', userId)
       )
       const querySnapshot = await getDocs(q)
@@ -320,7 +325,7 @@ export class CourseService {
   static async getCoursesByInstructorId(instructorId: string): Promise<Course[]> {
     try {
       const q = query(
-        collection(db, 'courses'),
+        collection(getDb(), 'courses'),
         where('instructorId', '==', instructorId),
         orderBy('createdAt', 'desc')
       )
