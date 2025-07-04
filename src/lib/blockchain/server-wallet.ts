@@ -6,7 +6,7 @@ import { NETWORK_CONFIGS } from './config'
  * This wallet is used by GroeimetAI to automatically mint certificates
  */
 export function getServerWallet(network: 'polygon' | 'mumbai' = 'polygon') {
-  const privateKey = process.env.PRIVATE_KEY
+  const privateKey = process.env.BLOCKCHAIN_PRIVATE_KEY || process.env.PRIVATE_KEY
   if (!privateKey) {
     throw new Error('Server wallet private key not configured')
   }
